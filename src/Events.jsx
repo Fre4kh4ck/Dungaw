@@ -21,7 +21,7 @@ export default function Events() {
     }, []);
 
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const [data, sendData] = useState([]);
+    const [data, sendData] = useState({});
 
     const toggleSidebar = () => {
         setSidebarOpen(!sidebarOpen);
@@ -82,11 +82,7 @@ export default function Events() {
                                 <i className="bi bi-calendar-event-fill"></i> Calendar
                             </a>
                         </li>
-                        <li className="nav-item mb-2">
-                            <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/DepartmentCalendar">
-                                <i className="bi bi-calendar-event-fill"></i> Dept. Calendar
-                            </a>
-                        </li>
+                        
                         <li className="nav-item mb-2">
                             <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/events"
                                 style={{
@@ -101,11 +97,7 @@ export default function Events() {
                                 <i className="bi bi-chat-dots-fill"></i> Chat
                             </a>
                         </li>
-                        <li className="nav-item mb-2">
-                            <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/contactUs">
-                                <i className="bi bi-telephone-fill"></i> Contact Us
-                            </a>
-                        </li>
+                       
 
                         <li className="nav-item mb-2 d-flex justify-content-center gap-2">
                             <a
@@ -269,21 +261,19 @@ export default function Events() {
                 </div>
             </div>
 
-            <div className="cardo justify-content-center mt-2 mb-5">
+            <div className="row grid justify-content-center mt-2 mb-5">
                 {(
                     <Loop repeat={data.length}>
                         {(index) => (
-                            <div key={index} className="">
+                            <div key={index} className="col-sm-12 col-md-4 col-lg-3  ">
                                 <div className="container-fluid mt-4 ">
                                     <div className="card shadow-lg border-0 rounded-4 " style={{ width: "22rem", marginLeft: "clamp(1px, 2vw, 3rem)" }}>
                                         <img
-                                            src={`http://dungaw.ua:4435/${data[index].EventPhoto}`}
+                                            src={data[index].EventPhoto}
                                             className="card-img-top rounded-top-4"
-                                            alt={data[index].EventName}
-                                            height={150}
-                                            style={{ objectFit: "cover" }}
+                                            alt={data[index].EventPhoto}
+                                            height={100}
                                         />
-
 
                                         <div className="card-body">
                                             <p className="text-muted mb-1">{new Date().toDateString(data[index].EventDate)} •  {data[index].EventVenue}, {data[index].EventTime}</p>

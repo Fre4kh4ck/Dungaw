@@ -5,9 +5,7 @@ import Home from '../Home';
 import Calendar from '../Calendar';
 import Events from '../Events';
 import Chats from '../Chat';
-import ContactUs from '../ContactUs';
 import AdminEvents from '../AdminEvents';
-import DeptCalendar from '../DeptCalendar';
 import Accounts from '../Accounts';
 import ProtectedRoute from './ProtectedRoute';
 import NotFound from '../NotFound';
@@ -37,8 +35,6 @@ export default function App() {
         <Route path='/calendar' element={<Calendar />} />
         <Route path='/events' element={<Events />} />
         <Route path='/chats' element={<Chats />} />
-        <Route path='/contactUs' element={<ContactUs />} />
-        <Route path='/DepartmentCalendar' element={<DeptCalendar />} />
         <Route path='/accounts' element={<Accounts />} />
       </Routes>
     </BrowserRouter>

@@ -66,11 +66,7 @@ export default function Chats() {
                 <i className="bi bi-calendar-event-fill"></i> Calendar
               </a>
             </li>
-            <li className="nav-item mb-2">
-              <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/DepartmentCalendar">
-                <i className="bi bi-calendar-event-fill"></i> Dept. Calendar
-              </a>
-            </li>
+
             <li className="nav-item mb-2">
               <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/events">
                 <i className="bi bi-calendar2-event"></i> Events
@@ -84,11 +80,7 @@ export default function Chats() {
                 <i className="bi bi-chat-dots-fill" ></i> Chat
               </a>
             </li>
-            <li className="nav-item mb-2">
-              <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/contactUs">
-                <i className="bi bi-telephone-fill"></i> Contact Us
-              </a>
-            </li>
+           
 
             <li className="nav-item mb-2 d-flex justify-content-center gap-2">
               <a

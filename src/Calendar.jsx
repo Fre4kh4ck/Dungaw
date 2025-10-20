@@ -6,14 +6,15 @@ import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import "../css/style.css";
 import UALOGO from "./assets/Ualogo.png";
-import FBLOGO from "./assets/fblogo.png";
-import INSTALOGO from "./assets/instalogo.png";
 import STAT from "./assets/stat.png";
+import FBLOGO from "./assets/fblogo.png"
+import INSTALOGO from "./assets/instalogo.png"
 
 export default function Calendars() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [date, setDate] = useState(new Date());
   const [selectedEvents, setSelectedEvents] = useState([]);
+  const [selectedDept, setSelectedDept] = useState("All Departments"); // NEW state
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
@@ -53,7 +54,7 @@ export default function Calendars() {
 
   return (
     <>
-      {/* ===== NAVBAR ===== */}
+      {/* ===== NAVBAR (UNCHANGED) ===== */}
       <div className="container-fluid">
         <nav
           className="navbar navbar-dark fixed-top d-flex justify-content-between px-3"
@@ -77,11 +78,10 @@ export default function Calendars() {
           </button>
         </nav>
 
-        {/* ===== SIDEBAR ===== */}
+        {/* ===== SIDEBAR (UNCHANGED) ===== */}
         <div
-          className={`border-end text-light position-fixed top-0 start-0 h-100 sidebar d-flex flex-column ${
-            sidebarOpen ? "show" : ""
-          }`}
+          className={`border-end text-light position-fixed top-0 start-0 h-100 sidebar d-flex flex-column ${sidebarOpen ? "show" : ""
+            }`}
           style={{
             width: "250px",
             zIndex: 1040,
@@ -121,14 +121,7 @@ export default function Calendars() {
                 <i className="bi bi-calendar-event-fill"></i> Calendar
               </a>
             </li>
-            <li className="nav-item mb-2">
-              <a
-                className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg"
-                href="/DepartmentCalendar"
-              >
-                <i className="bi bi-calendar2-week"></i> Dept. Calendar
-              </a>
-            </li>
+
             <li className="nav-item mb-2">
               <a
                 className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg"
@@ -145,14 +138,53 @@ export default function Calendars() {
                 <i className="bi bi-chat-dots-fill"></i> Chat
               </a>
             </li>
-            <li className="nav-item mb-2">
+
+            <li className="nav-item mb-2 d-flex justify-content-center gap-2">
               <a
-                className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg"
-                href="/contactUs"
+                className="nav-link d-flex align-items-center text-light rounded hover-bg p-0"
+                href="https://sims.antiquespride.edu.ph/aims/"
+                target="_blank"
+                rel="noopener noreferrer"
               >
-                <i className="bi bi-telephone-fill"></i> Contact Us
+                <img
+                  style={{ width: '2rem', marginTop: "clamp(14rem, 17vw, 30rem)" }}
+                  src={UALOGO}
+                  alt="UA Logo"
+                />
+              </a>
+              <a
+                className="nav-link d-flex align-items-center text-light rounded hover-bg p-0"
+                href="https://www.facebook.com/universityofantique"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img
+                  style={{ width: '2rem', marginTop: "clamp(14rem, 17vw, 30rem)" }}
+                  src={FBLOGO}
+                  alt="UA Logo"
+                />
+              </a>
+
+              <a
+                className="nav-link d-flex align-items-center text-light rounded hover-bg p-0"
+                href="https://www.instagram.com/universityofantique/?fbclid=IwY2xjawMThI5leHRuA2FlbQIxMABicmlkETFMOW9WR05lSk9ueUw5RHBjAR7U41Nmb8qnG_IxwM0zmmnbWLV13iKSy_JXJbqFTwEQSK79Ex9E-oXkSv0lbg_aem_EssSasxkd1zOZ-PRRDld3g#"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img
+                  style={{ width: '2rem', marginTop: "clamp(14rem, 17vw, 30rem)" }}
+                  src={INSTALOGO}
+                  alt="UA Logo"
+                />
               </a>
             </li>
+
+            <li className="nav-item mb-2 justify-content-center d-flex">
+              <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg text-center" href="/login">
+                <i className="bi bi-box-arrow-right"></i> Log out
+              </a>
+            </li>
+
           </ul>
           <img
             src={STAT}
@@ -173,15 +205,21 @@ export default function Calendars() {
 
       {/* ===== MAIN CONTENT ===== */}
       <div
-        className="container-fluid calendar- col-lg-10"
-        style={{ marginLeft: "250px", paddingTop: "9rem", paddingBottom: "4rem" }}
+        className="container-fluid col-lg-10"
+        style={{
+          marginLeft: "250px",
+          paddingTop: "9rem",
+          paddingBottom: "4rem",
+          display: "grid",
+          justifyContent: "center",
+        }}
       >
         {/* LEGEND */}
-        <div className="text-center mb-4">
-          <h2 className="fw-bold mb-3" style={{ color: "#711212" }}>
-            Department Color Legend
-          </h2>
-          <div className="d-flex flex-wrap justify-content-center gap-4">
+        <div className="card shadow-sm border-0 p-4 mb-5 mx-3 rounded-4">
+          <h3 className="fw-bold text-center mb-4 text-primary">
+            <i className="bi bi-palette2 me-2"></i>Department Color Legend
+          </h3>
+          <div className="d-flex flex-wrap justify-content-center gap-3">
             {[
               ["#dc3545", "CCIS"],
               ["#0d6efd", "CTE"],
@@ -192,18 +230,25 @@ export default function Calendars() {
               ["#fd7e14", "CHS"],
               ["#6c757d", "CIT"],
             ].map(([color, dept]) => (
-              <div key={dept} className="d-flex align-items-center gap-2">
-                <div
+              <span
+                key={dept}
+                className="badge d-flex align-items-center gap-2 shadow-sm px-3 py-2 rounded-pill text-dark"
+                style={{
+                  backgroundColor: "#f8f9fa",
+                  border: `2px solid ${color}`,
+                }}
+              >
+                <span
                   style={{
-                    width: "20px",
-                    height: "20px",
+                    width: "15px",
+                    height: "15px",
                     backgroundColor: color,
-                    borderRadius: "4px",
-                    boxShadow: "0 0 4px rgba(0,0,0,0.2)",
+                    borderRadius: "50%",
+                    display: "inline-block",
                   }}
-                ></div>
-                <span style={{ fontWeight: "500", color: "#333" }}>{dept}</span>
-              </div>
+                ></span>
+                <strong>{dept}</strong>
+              </span>
             ))}
           </div>
         </div>
@@ -212,72 +257,106 @@ export default function Calendars() {
         <div className="row justify-content-center px-4">
           {/* LEFT: CALENDAR */}
           <div className="col-lg-7 mb-4">
-            <div
-              className="card shadow p-4 border-0"
-              style={{
-                borderRadius: "20px",
-                background: "#fff",
-                boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
-              }}
-            >
-              <div
-                className="text-center fw-bold mb-3"
-                style={{
-                  color: "#711212",
-                  fontSize: "1.5rem",
-                  borderBottom: "2px solid #711212",
-                  paddingBottom: "10px",
-                }}
-              >
-                Calendar
+            <div className="card border-0 shadow-lg rounded-4 p-4">
+              <div className="text-center fw-bold mb-4 fs-4 text-danger border-bottom pb-3">
+                <i className="bi bi-calendar3 me-2"></i>Academic Calendar
               </div>
-              <Calendar
-                onChange={handleDateChange}
-                value={date}
-                tileContent={({ date, view }) => {
-                  const type = view === "month" ? getEventType(date) : null;
-                  return type ? <div className={`event-dot ${type}`}></div> : null;
-                }}
-              />
-              <p className="text-center mt-3 fw-semibold">
-                Selected: {date.toDateString()}
-              </p>
-              {selectedEvents.length > 0 ? (
-                <ul className="list-unstyled text-center">
-                  {selectedEvents.map((event, i) => (
-                    <li key={i} className="text-danger">
-                      📌 {event.title}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-center text-muted">No events for this date.</p>
-              )}
+
+              {/* ===== DEPARTMENT FILTER (DESIGN ONLY) ===== */}
+              <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                <label className="fw-semibold text-secondary mb-0">
+                  <i className="bi bi-funnel-fill me-2 text-danger"></i>Filter by Department:
+                </label>
+                <select
+                  className="form-select w-auto shadow-sm rounded-pill border-1"
+                  value={selectedDept}
+                  onChange={(e) => setSelectedDept(e.target.value)}
+                  style={{ minWidth: "220px" }}
+                >
+                  <option>All Departments</option>
+                  <option>CCIS</option>
+                  <option>CTE</option>
+                  <option>COE</option>
+                  <option>CAS</option>
+                  <option>CBA</option>
+                  <option>CTEd</option>
+                  <option>CHS</option>
+                  <option>CIT</option>
+                </select>
+              </div>
+
+              {/* CALENDAR */}
+              <div className="calendar-container mx-auto">
+                <Calendar
+                  onChange={handleDateChange}
+                  value={date}
+                  className="rounded-4 border shadow-sm p-3"
+                  tileContent={({ date, view }) => {
+                    const type = view === "month" ? getEventType(date) : null;
+                    return type ? (
+                      <div
+                        className="mx-auto mt-1 rounded-circle"
+                        style={{
+                          width: "8px",
+                          height: "8px",
+                          backgroundColor:
+                            type === "school"
+                              ? "#dc3545"
+                              : type === "personal"
+                                ? "#0d6efd"
+                                : "#ffc107",
+                        }}
+                      ></div>
+                    ) : null;
+                  }}
+                />
+              </div>
+
+              <div className="mt-4 text-center">
+                <h6 className="fw-bold mb-2 text-secondary">
+                  Selected Date: <span className="text-danger">{date.toDateString()}</span>
+                </h6>
+                {selectedEvents.length > 0 ? (
+                  <ul className="list-unstyled">
+                    {selectedEvents.map((event, i) => (
+                      <li key={i} className="fw-semibold text-danger">
+                        <i className="bi bi-pin-angle-fill me-2"></i>
+                        {event.title}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-muted fst-italic">No events scheduled for this date.</p>
+                )}
+              </div>
             </div>
           </div>
 
           {/* RIGHT: UPCOMING EVENTS */}
           <div className="col-lg-4">
-            <h4 className="fw-bold text-center mb-3" style={{ color: "#711212" }}>
-              Upcoming Events
-            </h4>
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="card mb-3 border-0"
-                style={{
-                  height: "10rem",
-                  backgroundColor: "#ea7b7b",
-                  borderRadius: "16px",
-                  boxShadow: "0 4px 15px rgba(0,0,0,0.15)",
-                }}
-              >
-                <div className="card-body d-flex flex-column justify-content-center align-items-center text-white">
-                  <h5 className="fw-bold mb-2">Event Title {i}</h5>
-                  <p className="mb-0">Date: August {i * 5 + 15}, 2025</p>
+            <div className="card border-0 shadow-sm rounded-4 p-4">
+              <h4 className="fw-bold text-center mb-4 text-primary">
+                <i className="bi bi-clock-history me-2"></i>Upcoming Events
+              </h4>
+
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="card mb-3 border-0 shadow-sm rounded-4 hover-shadow transition"
+                  style={{ backgroundColor: "#711212", color: "white" }}
+                >
+                  <div className="card-body text-center">
+                    <h5 className="fw-bold mb-1">Event Title {i}</h5>
+                    <p className="mb-0 small opacity-75">📅 August {i * 5 + 15}, 2025</p>
+                  </div>
                 </div>
+              ))}
+              <div className="text-center mt-3">
+                <a href="/events" className="btn btn-outline-danger rounded-pill px-4">
+                  View All Events
+                </a>
               </div>
-            ))}
+            </div>
           </div>
         </div>
       </div>
