@@ -13,6 +13,10 @@ import STAT from './assets/stat.png'
 import CCSLOGO from './assets/CCSLOGO.png'
 import BG2 from './assets/bg2.jpg'
 import { useNavigate } from 'react-router-dom';
+import CCSVID from './assets/CCSMP4.mp4'
+import HMVID from './assets/HMVID.mp4'
+import axios from 'axios';
+import Loop from './Loop'
 
 
 
@@ -20,10 +24,26 @@ export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const navigate = useNavigate()
+  const [data, sendData] = useState([]);
+
 
   const viewMore = () => {
     navigate('/events');
   }
+
+
+  const FetchEvents = async () => {
+    try {
+      const res = await axios.get("http://dungaw.ua:4435/events");
+      sendData(res.data);
+    } catch (err) {
+      console.error("Failed to fetch events", err);
+    }
+  };
+
+  useEffect(() => {
+    FetchEvents();
+  }, []);
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -237,7 +257,7 @@ export default function Home() {
                       }}
                     ></div>
                     <video
-                      src={CCSMP4}
+                      src={CCSVID}
                       controls
                       style={{ width: "100%", borderRadius: "0 0 16px 16px" }}
                     >
@@ -259,7 +279,7 @@ export default function Home() {
                           View details
                         </button>
 
-                        <div className="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                        <div className="modal fade" id="exampleModal" tabIndex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
                           <div className="modal-dialog">
                             <div className="modal-content">
                               <div className="modal-header">
@@ -315,7 +335,7 @@ export default function Home() {
                       }}
                     ></div>
                     <video
-                      src={CCSMP4}
+                      src={HMVID}
                       controls
                       style={{ width: "100%", borderRadius: "0 0 16px 16px" }}
                     >
@@ -516,22 +536,37 @@ export default function Home() {
 
       <div className="container-fluid">
         <div className="row d-flex justify-content-end mt-5 mb-5">
-          <div className="col-sm-12 col-md-6 col-lg-4">
-            <div style={{ marginLeft: "10px", fontWeight: "bold", fontFamily: "San-Serif" }}>
-              <h1>Ongoing Events</h1>
-            </div>
-            <div className="card mt-5" style={{ height: '15rem', backgroundColor: '#ebebebff' }}>
-              <div className="card-body d-flex justify-content-center align-items-center">
-                Events
-              </div>
-            </div>
+          <h1>Upcoming Events</h1>
+          {(
+            <Loop repeat={data.length}>
+              {(index) => (
+                <div key={index} className="col-sm-12 col-md-4 col-lg-3  ">
+                  <div className="container-fluid mt-4 ">
+                    <div className="card shadow-lg border-0 rounded-4 " style={{ width: "22rem", marginLeft: "clamp(1px, 2vw, 3rem)" }}>
+                      <img
+                        src={data[index].EventPhoto}
+                        className="card-img-top rounded-top-4"
+                        alt={data[index].EventPhoto}
+                        height={100}
+                      />
 
-            <div className="card mt-3 mb-5" style={{ height: '15rem', backgroundColor: '#ebebebff' }}>
-              <div className="card-body d-flex justify-content-center align-items-center">
-                Events
-              </div>
-            </div>
-          </div>
+                      <div className="card-body">
+                        <p className="text-muted mb-1">{new Date().toDateString(data[index].EventDate)} •  {data[index].EventVenue}, {data[index].EventTime}</p>
+                        <h5 className="card-title fw-bold">{data[index].EventName}</h5>
+                        <p className="text-muted mb-2">4+ Interested</p>
+
+
+                        <a href="" className="btn btn-outline-danger d-flex align-items-center gap-2">
+                          <i className="bi bi-people-fill"></i> Join
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </Loop>
+          ) || <h1>Loading...</h1>}
+
           <div className="col-sm-10 col-md-6 col-lg-6 text-start d-flex justify-content-center" style={{
             fontFamily: "San-Serif",
           }}>

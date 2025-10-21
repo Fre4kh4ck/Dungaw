@@ -12,7 +12,6 @@ import STAT from './assets/stat.png';
 
 export default function AdminHome() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('submitted');
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
@@ -26,7 +25,7 @@ export default function AdminHome() {
     formData.append("venue", e.target.venue.value);
     formData.append("description", e.target.description.value);
     formData.append("photo", e.target.photo.files[0]);
-    formData.append("dept", e.target.dept.value); // ✅ department from input
+    formData.append("dept", e.target.dept.value); 
 
     try {
       await axios.post("http://dungaw.ua:4435/addevent/add", formData, {
@@ -117,7 +116,7 @@ export default function AdminHome() {
           />
         </div>
 
-        {/* 🔴 Main Form */}
+        
         <div className="col-sm-12 d-flex justify-content-end mt-5">
           <div
             className="ms-0 ms-md-5 w-100"

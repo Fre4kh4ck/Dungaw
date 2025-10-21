@@ -25,13 +25,15 @@ server.use(express.static('uploads'));
 
 //Get ka Event
 
-server.get('/events', async (req, res) => {
+server.get("/events", async (req, res) => {
   try {
-    const [rows] = await db.pool.query('SELECT * FROM addevent ORDER BY EventDate ASC');
-    res.json(rows);
+    const rows = await db.pool.query(
+      "SELECT * FROM addevent ORDER BY EventDate ASC"
+    );
+    res.send(rows );
   } catch (err) {
-    console.error('Error fetching events:', err);
-    res.status(500).json({ error: 'Failed to fetch events' });
+    console.error("Error fetching events:", err);
+    res.status(500).json({ error: "Failed to fetch events" });
   }
 });
 
