@@ -6,39 +6,52 @@ const bodyParser = require('body-parser');
 const db = require('./db.js');
 const verifyToken = require('./middlewares/verifyToken.js');
 const multer = require('multer');
-const upload = multer(); // memory storage by default
-
-
+const path = require('path');
+const jwt = require('jsonwebtoken');
 
 const server = express();
 const host = 'http://dungaw.ua';
 const port = 4435;
 
+// Middleware setup
 server.use(express.json());
 server.use(bodyParser.urlencoded({ extended: false }));
 server.use(cors({
   origin: ['http://localhost:5173', 'http://dungaw.ua:5173'],
   credentials: true
 }));
-server.use(express.static('uploads'));
 
+// ✅ Serve uploaded images publicly
+server.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-//Get ka Event
+// ✅ Configure multer for disk storage
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, path.join(__dirname, 'uploads')); // Save inside /api/uploads
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = Date.now() + '-' + file.originalname;
+    cb(null, uniqueName);
+  }
+});
+const upload = multer({ storage });
 
+// ================== EVENT ROUTES ==================
+
+// Get all events
 server.get("/events", async (req, res) => {
   try {
-    const rows = await db.pool.query(
+    const [rows] = await db.pool.query(
       "SELECT * FROM addevent ORDER BY EventDate ASC"
     );
-    res.send(rows );
+    res.json(rows);
   } catch (err) {
     console.error("Error fetching events:", err);
     res.status(500).json({ error: "Failed to fetch events" });
   }
 });
 
-
-//Event Post, sakit na likod ko sir 
+// Add new event
 server.post('/addevent/add', upload.single('photo'), async (req, res) => {
   const task = req.body;
   const file = req.file;
@@ -57,15 +70,16 @@ server.post('/addevent/add', upload.single('photo'), async (req, res) => {
     task.date,
     task.venue,
     task.description,
-    file ? file.originalname : null,
+    file ? file.filename : null, // ✅ store the saved filename, not originalname
     task.dept
   ]);
 
   res.json({ success: true });
 });
 
+// ================== ADMIN & AUTH ==================
 
-//Protect Endpoint 
+// Protected endpoint (JWT)
 server.get('/adminEvents', verifyToken, async (req, res) => {
   try {
     res.json({
@@ -75,15 +89,11 @@ server.get('/adminEvents', verifyToken, async (req, res) => {
     });
   } catch (err) {
     console.error('Error in /adminEvents:', err);
-    res
-      .status(500)
-      .json({ success: false, message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
-//JWT token nga darwa ka adlaw gin problemahan
 
-const jwt = require('jsonwebtoken'); 
-
+// Login authentication
 server.post('/auth/login', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -127,21 +137,20 @@ server.post('/auth/login', async (req, res) => {
   }
 });
 
+// ================== ACCOUNT ROUTES ==================
 
-//GET By Juswa
-
+// Get all accounts
 server.get('/accounts/order/id', async (req, res) => {
   try {
-    const result = await db.pool.query("SELECT * FROM accounts ORDER BY account_id ASC");
-    const data = Array.isArray(result[0]) ? result[0] : result;
-    res.json(data);
+    const [result] = await db.pool.query("SELECT * FROM accounts ORDER BY account_id ASC");
+    res.json(result);
   } catch (err) {
     console.error("Database query failed:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-//Edit Account 
+// Edit account
 server.put('/accounts/edit', async (req, res) => {
   try {
     const task = req.body;
@@ -159,12 +168,10 @@ server.put('/accounts/edit', async (req, res) => {
   }
 });
 
-//Delete Account 
-
+// Delete account
 server.post('/accounts/delete', async (req, res) => {
   try {
     console.log('Request body:', req.body);
-
     const { id } = req.body;
 
     const [result] = await db.pool.query(
@@ -173,7 +180,6 @@ server.post('/accounts/delete', async (req, res) => {
     );
 
     console.log('Deleted:', result);
-
     res.json({ success: true, deletedId: id });
   } catch (err) {
     console.error('Error deleting account:', err);
@@ -181,15 +187,10 @@ server.post('/accounts/delete', async (req, res) => {
   }
 });
 
-
-//Search ka mga Event
-
-//Sakit sa likod tak an ako Sir
-
+// Search accounts
 server.post('/account/search', async (req, res) => {
   try {
     const { department, role } = req.body;
-
     const depKeyword = `%${department || ''}%`;
     const roleKeyword = `%${role || ''}%`;
 
@@ -209,6 +210,7 @@ server.post('/account/search', async (req, res) => {
   }
 });
 
+// Add account
 server.post('/accounts/post', async (req, res) => {
   try {
     const task = req.body;
@@ -229,6 +231,7 @@ server.post('/accounts/post', async (req, res) => {
     console.error(err);
     res.status(500).json({ success: false, error: err.message });
   }
-}); 
+});
 
-server.listen(port, () => console.log(`API server is now running at ${host}:${port}`));
+// ================== START SERVER ==================
+server.listen(port, () => console.log(`✅ API server running at ${host}:${port}`));

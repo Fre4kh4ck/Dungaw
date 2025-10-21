@@ -212,7 +212,7 @@ export default function Events() {
                                 Discover the Most Exciting Campus Events Around You
                             </p>
 
-                            {/* Search Bar */}
+                            
                             <div
                                 style={{
                                     display: "flex",
@@ -261,7 +261,7 @@ export default function Events() {
                 </div>
             </div>
 
-            <div className="row grid justify-content-center mt-2 mb-5">
+                <div className="cardo justify-content-center mt-2 mb-5">
                 {(
                     <Loop repeat={data.length}>
                         {(index) => (
@@ -292,6 +292,7 @@ export default function Events() {
                     </Loop>
                 ) || <h1>Loading...</h1>}
             </div>
+
         </>
     );
 }

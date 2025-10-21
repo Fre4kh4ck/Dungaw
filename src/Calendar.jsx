@@ -19,6 +19,8 @@ export default function Calendars() {
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
+
+  
   // 🎨 Department Colors
   const deptColors = {
     CCIS: "#0d6efd",
@@ -62,6 +64,7 @@ export default function Calendars() {
     });
     setSelectedEvents(selectedDayEvents);
   };
+  
 
   return (
     <>

@@ -237,12 +237,32 @@
   background-color: #9d0504 !important;
   color: white !important;
   transform: scale(1.05); 
+};
+
+
+
+.highlighted-date {
+  position: relative;
 }
 
+.highlighted-date::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  right: 4px;
+  bottom: 4px;
+  border-radius: 8px;
+  opacity: 0.4;
+  z-index: 0;
+};
+
+.highlighted-date::after {
+  background-color: var(--highlight-color);
+};
 
 .cardo {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   margin-left: 16rem;
-}
-
+};
