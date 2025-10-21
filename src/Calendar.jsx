@@ -20,17 +20,16 @@ export default function Calendars() {
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
 
-  
-  // 🎨 Department Colors
+
   const deptColors = {
+    UA: "#f21010ff",    
     CCIS: "#0d6efd",
-    CTE: "#dc3545",
-    COE: "#198754",
-    CAS: "#ffc107",
-    CBA: "#6610f2",
-    CTEd: "#20c997",
-    CHS: "#fd7e14",
-    CIT: "#6c757d",
+    CBA: "#00AEEF",
+    CTE: "#a735dcff",   
+    CCJE: "#d7ff24ff",  
+    CAS: "#18bb0cff",    
+    CEA: "#c9a420ff",   
+    CMS: "#ecececff"     
   };
 
   // 🧭 Fetch Events from Backend
@@ -64,7 +63,7 @@ export default function Calendars() {
     });
     setSelectedEvents(selectedDayEvents);
   };
-  
+
 
   return (
     <>
@@ -290,7 +289,7 @@ export default function Calendars() {
                 </select>
               </div>
 
-              {/* 🗓️ CALENDAR */}
+
               <div className="calendar-container mx-auto">
                 <Calendar
                   onChange={handleDateChange}

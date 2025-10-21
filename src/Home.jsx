@@ -26,6 +26,7 @@ export default function Home() {
 
   const navigate = useNavigate()
   const [data, sendData] = useState([]);
+  const [selectedDept] = useState("All Departments");
 
 
   const viewMore = () => {
@@ -50,31 +51,17 @@ export default function Home() {
     setSidebarOpen(!sidebarOpen);
   };
 
-  const events = [
-    { date: new Date(2025, 7, 20), type: "school" },
-    { date: new Date(2025, 7, 25), type: "personal" },
-    { date: new Date(2025, 7, 31), type: "important" }
-  ];
-
-
-  const getEventType = (date) => {
-    const found = events.find(
-      (event) =>
-        event.date.getFullYear() === date.getFullYear() &&
-        event.date.getMonth() === date.getMonth() &&
-        event.date.getDate() === date.getDate()
-    );
-    return found ? found.type : null;
-  };
-
   const getEventsForDate = (date) => {
-    return events.filter(
-      (event) =>
-        event.date.getFullYear() === date.getFullYear() &&
-        event.date.getMonth() === date.getMonth() &&
-        event.date.getDate() === date.getDate()
+  return data.filter((event) => {
+    const d = new Date(event.EventDate);
+    return (
+      d.getFullYear() === date.getFullYear() &&
+      d.getMonth() === date.getMonth() &&
+      d.getDate() === date.getDate()
     );
-  };
+  });
+};
+
 
   const handleDateChange = (value) => {
     setDate(value);
@@ -87,6 +74,16 @@ export default function Home() {
   useEffect(() => {
     setSelectedEvents(getEventsForDate(new Date()));
   }, []);
+
+  const deptColors = {
+    UA: "#f21010ff",     
+    CCIS: "#0d6efd",   
+    CTE: "#a735dcff",    
+    CCJE: "#d7ff24ff",   
+    CAS: "#18bb0cff",    
+    CEA: "#c9a420ff",    
+    CMS: "#ecececff"    
+  };
 
   return (
     <>
@@ -556,39 +553,86 @@ export default function Home() {
           <div className="col-sm-12 col-md-6 col-lg-4">
             <div className="container d-flex justify-content-center" style={{ marginBottom: "5rem" }}>
               <div className="card shadow-lg p-4" style={{ borderRadius: "15px" }}>
-
-
-
                 {/* Calendar */}
                 <Calendar
                   onChange={handleDateChange}
                   value={date}
+                  className="rounded-4 border shadow-sm p-3"
+                  tileClassName={({ date, view }) => {
+                    if (view !== 'month') return '';
+                    const hasEvent = data.some((event) => {
+                      const eventDate = new Date(event.EventDate);
+                      return (
+                        eventDate.getFullYear() === date.getFullYear() &&
+                        eventDate.getMonth() === date.getMonth() &&
+                        eventDate.getDate() === date.getDate()
+                      );
+                    });
+                    return hasEvent ? 'highlight-event' : '';
+                  }}
                   tileContent={({ date, view }) => {
-                    const type = view === "month" ? getEventType(date) : null;
-                    return type ? <div className={`event-dot ${type}`}></div> : null;
+                    if (view !== 'month') return null;
+
+                    const dayEvents = data.filter((event) => {
+                      const eventDate = new Date(event.EventDate);
+                      return (
+                        eventDate.getFullYear() === date.getFullYear() &&
+                        eventDate.getMonth() === date.getMonth() &&
+                        eventDate.getDate() === date.getDate()
+                      );
+                    });
+
+                    const filteredEvents =
+                      selectedDept === "All Departments"
+                        ? dayEvents
+                        : dayEvents.filter((e) => e.EventDept === selectedDept);
+
+                    if (filteredEvents.length === 0) return null;
+
+                    const dept = filteredEvents[0].EventDept;
+                    const color = deptColors[dept] || "#bbb";
+
+                    return (
+                      <div
+                        style={{
+                          backgroundColor: color,
+                          opacity: 0.4,
+                          borderRadius: "6px",
+                          height: "100%",
+                          width: "100%",
+                        }}
+                      ></div>
+                    );
                   }}
                 />
 
-                {/* Selected Date */}
-                <p className="text-center mt-3">
-                  <strong>Selected:</strong> {date.toDateString()}
-                </p>
 
-                {/* Event Details */}
-                {selectedEvents.length > 0 ? (
-                  <div className="event-list mt-3">
-                    <h6>📌 Events:</h6>
-                    <ul>
-                      {selectedEvents.map((event, index) => (
-                        <li key={index} className={`event-item ${event.type}`}>
-                          <span className="dot asdas"></span> {event.title}
+                <div className="mt-4 text-center">
+                  <h6 className="fw-bold mb-2 text-secondary">
+                    Selected Date:{" "}
+                    <span className="text-danger">
+                      {date.toDateString()}
+                    </span>
+                  </h6>
+                  {selectedEvents.length > 0 ? (
+                    <ul className="list-unstyled">
+                      {selectedEvents.map((event, i) => (
+                        <li key={i} className="fw-semibold text-danger">
+                          <i className="bi bi-pin-angle-fill me-2"></i>
+                          {event.EventName} (
+                          <span className="text-secondary">
+                            {event.EventDept}
+                          </span>
+                          )
                         </li>
                       ))}
                     </ul>
-                  </div>
-                ) : (
-                  <p className="text-center text-muted mt-3">No events today.</p>
-                )}
+                  ) : (
+                    <p className="text-muted fst-italic">
+                      No events scheduled for this date.
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -599,7 +643,7 @@ export default function Home() {
         <div className="row d-flex justify-content-center align-items-start mt-5 mb-5">
           {/* ====== EVENTS CARD SECTION (LEFT SIDE) ====== */}
           <div className="col-sm-12 col-md-6 col-lg-4 d-flex flex-column align-items-start">
-            <h1 className="mb-4 mt-sm-5" style={{ fontFamily: 'sanSerif'}}>Upcoming Events</h1>
+            <h1 className="mb-4 mt-sm-5" style={{ fontFamily: 'sanSerif' }}>Upcoming Events</h1>
 
             {data && data.length > 0 ? (
               data.slice(0, 3).map((event, index) => (
@@ -668,8 +712,6 @@ export default function Home() {
           </div>
         </div>
       </div>
-
-
     </>
   );
 }

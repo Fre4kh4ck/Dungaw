@@ -20,6 +20,15 @@ export default function Events() {
         Tick(GetEvents);
     }, []);
 
+    const [isLargeScreen, setIsLargeScreen] = useState(window.innerWidth >= 992);
+
+    useEffect(() => {
+        const handleResize = () => setIsLargeScreen(window.innerWidth >= 992);
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
+
+
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [data, sendData] = useState({});
 
@@ -82,7 +91,7 @@ export default function Events() {
                                 <i className="bi bi-calendar-event-fill"></i> Calendar
                             </a>
                         </li>
-                        
+
                         <li className="nav-item mb-2">
                             <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/events"
                                 style={{
@@ -97,7 +106,7 @@ export default function Events() {
                                 <i className="bi bi-chat-dots-fill"></i> Chat
                             </a>
                         </li>
-                       
+
 
                         <li className="nav-item mb-2 d-flex justify-content-center gap-2">
                             <a
@@ -212,7 +221,7 @@ export default function Events() {
                                 Discover the Most Exciting Campus Events Around You
                             </p>
 
-                            
+
                             <div
                                 style={{
                                     display: "flex",
@@ -260,38 +269,44 @@ export default function Events() {
                     </div>
                 </div>
             </div>
-
-                <div className="cardo justify-content-center mt-2 mb-5">
-                {(
-                    <Loop repeat={data.length}>
-                        {(index) => (
-                            <div key={index} className="col-sm-12 col-md-4 col-lg-3  ">
-                                <div className="container-fluid mt-4 ">
-                                    <div className="card shadow-lg border-0 rounded-4 " style={{ width: "22rem", marginLeft: "clamp(1px, 2vw, 3rem)" }}>
+            <div className="container-fluid mt-5 mb-5">
+                <div
+                    className="events-grid"
+                    style={{
+                        marginLeft: isLargeScreen ? "15rem" : "0",
+                        transition: "all 0.3s ease-in-out",
+                    }}
+                >
+                    {(
+                        <Loop repeat={data.length}>
+                            {(index) => (
+                                <div key={index} className="card-wrapper">
+                                    <div className="card shadow-lg border-0 rounded-4 equal-card">
                                         <img
                                             src={data[index].EventPhoto}
                                             className="card-img-top rounded-top-4"
                                             alt={data[index].EventPhoto}
-                                            height={100}
+                                            height={180}
                                         />
-
                                         <div className="card-body">
-                                            <p className="text-muted mb-1">{new Date().toDateString(data[index].EventDate)} •  {data[index].EventVenue}, {data[index].EventTime}</p>
+                                            <p className="text-muted mb-1">
+                                                {new Date(data[index].EventDate).toDateString()} • {data[index].EventVenue}, {data[index].EventTime}
+                                            </p>
                                             <h5 className="card-title fw-bold">{data[index].EventName}</h5>
                                             <p className="text-muted mb-2">4+ Interested</p>
 
-                                            {/* Phone button */}
-                                            <a href="" className="btn btn-outline-danger d-flex align-items-center gap-2">
+                                            <a href="#" className="btn btn-outline-danger d-flex align-items-center gap-2">
                                                 <i className="bi bi-people-fill"></i> Join
                                             </a>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        )}
-                    </Loop>
-                ) || <h1>Loading...</h1>}
+                            )}
+                        </Loop>
+                    ) || <h1>Loading...</h1>}
+                </div>
             </div>
+
 
         </>
     );

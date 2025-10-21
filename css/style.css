@@ -266,3 +266,59 @@
   grid-template-columns: repeat(3, 1fr);
   margin-left: 16rem;
 };
+
+.card-column {
+  break-inside: avoid;
+  margin-bottom: 2rem;
+}
+
+.events-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
+  gap: 2rem;
+  justify-content: center;
+}
+
+.card-wrapper {
+  display: flex;
+  justify-content: center;
+}
+
+.equal-card {
+  width: 23rem;
+  min-height: 20rem; /* Keeps card height consistent */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+}
+
+.equal-card img {
+  height: 180px;
+  width: 100%;
+  object-fit: cover;
+  border-top-left-radius: 1rem;
+  border-top-right-radius: 1rem;
+}
+
+.equal-card .card-body {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Adjust grid for responsive equal sizing */
+.events-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(25rem, 1fr));
+  gap: 2rem;
+  justify-content: center;
+  align-items: start; /* ensures top alignment */
+}
+
+.card-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: stretch; /* ensures equal height */
+}

@@ -159,11 +159,13 @@ export default function AdminHome() {
                       <label className="form-label fw-bold">Department</label>
                       <select className="form-select" name="dept" required>
                         <option value="">Select Department</option>
-                        <option value="CITCS">UA CAMPUS</option>
+                        <option value="CITCS">UA</option>
+                        <option value="COE">CCIS</option>
                         <option value="COE">CTE</option>
+                        <option value="COE">CCJE</option>
                         <option value="CAS">CAS</option>
                         <option value="CAF">CEA</option>
-                        <option value="CBA">CCIS</option>
+                        <option value="CBA">CMS</option>
                       </select>
                     </div>
                     <div className="col-md-4 mb-3">
