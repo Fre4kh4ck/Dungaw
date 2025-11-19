@@ -377,9 +377,7 @@ server.post("/join-event", async (req, res) => {
       joined_at: new Date() // Ensure joined_at is recorded
     });
 
-    // 4. PREPARE EMAIL ATTACHMENT
-    const base64Data = qrCodeDataURL.split(",")[1];
-
+    // 4. PREPARE EMAIL
     // Format date for email
     const dateDisplay = eventDate ? new Date(eventDate).toDateString() : "Date TBA";
     const venueDisplay = eventVenue || "Campus Venue";
@@ -403,7 +401,7 @@ server.post("/join-event", async (req, res) => {
                   <hr>
                   <div style="text-align: center; margin: 20px 0;">
                       <p><strong>Show this QR code at the entrance:</strong></p>
-                      <img src="cid:eventqrcode" alt="Your Event QR Code" style="width: 200px; height: 200px;" />
+                      <img src="${qrCodeDataURL}" alt="Your Event QR Code" style="width: 200px; height: 200px;" />
                   </div>
                   <hr>
 
@@ -413,16 +411,6 @@ server.post("/join-event", async (req, res) => {
                   </p>
               </div>
         `,
-        attachments: [
-          {
-            content: base64Data,
-            filename: 'qrcode.png',
-            type: 'image/png',
-            disposition: 'inline',
-            contentId: 'eventqrcode', // Note: contentId instead of content_id
-            encoding: 'base64'
-          }
-        ]
       };
 
       await transporter.sendMail(msg);
