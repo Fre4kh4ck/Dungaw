@@ -24,7 +24,7 @@ const port = 4435;
 server.use(express.json());
 server.use(express.urlencoded({ extended: false }));
 
-const transporter = nodemailer.createTransporter({
+const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: process.env.SMTP_PORT || 587,
   secure: process.env.SMTP_PORT == 465,
