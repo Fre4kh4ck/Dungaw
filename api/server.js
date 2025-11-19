@@ -523,7 +523,7 @@ server.post("/google-login", async (req, res) => {
 
     if (!user) {
       const insertResult = await db.insert(users).values({
-        google_id,
+        google_id: googleId,
         name,
         email,
         picture
@@ -531,7 +531,7 @@ server.post("/google-login", async (req, res) => {
 
       user = {
         id: insertResult[0].id,
-        google_id,
+        google_id: googleId,
         name,
         email,
         picture,
