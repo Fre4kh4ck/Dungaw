@@ -2,7 +2,9 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const db = require('./db.js');
+const { db } = require('./db.js');
+const { accounts, events, chat_messages, joined_events, users } = require('./drizzle-schema.js');
+const { eq, and, gt, sql, count, desc, or } = require('drizzle-orm');
 const verifyToken = require('./middlewares/verifyToken.js');
 const multer = require('multer');
 const upload = multer();
@@ -42,17 +44,16 @@ server.post("/verify-ticket", async (req, res) => {
     }
 
     // 2. Find the user's ticket AND the Event Name
-    const [rows] = await db.pool.query(
-      `SELECT
-         j.user_email, j.event_id, j.ticket_id, j.time_in, j.time_out,
-         e.EventName
-       FROM joined_events j
-       JOIN addevent e ON j.event_id = e.EventID
-       WHERE j.user_email = ? AND j.event_id = ? AND j.ticket_id = ?`,
-      [email, eventId, ticketId]
-    );
+    const result = await db.select({
+      user_email: joined_events.user_email,
+      event_id: joined_events.event_id,
+      ticket_id: joined_events.ticket_id,
+      time_in: joined_events.time_in,
+      time_out: joined_events.time_out,
+      event_name: events.event_name
+    }).from(joined_events).innerJoin(events, eq(joined_events.event_id, events.event_id)).where(and(eq(joined_events.user_email, email), eq(joined_events.event_id, eventId), eq(joined_events.ticket_id, ticketId)));
 
-    const ticket = Array.isArray(rows) ? rows[0] : rows;
+    const ticket = result[0];
 
     // 3. Check if the ticket is valid
     if (!ticket) {
@@ -68,22 +69,19 @@ server.post("/verify-ticket", async (req, res) => {
 
     // --- THIS IS THE FIRST SCAN (TIME IN) ---
     if (ticket.time_in === null) {
-      await db.pool.query(
-        "UPDATE joined_events SET time_in = ? WHERE user_email = ? AND event_id = ?",
-        [now, email, eventId]
-      );
+      await db.update(joined_events).set({ time_in: now }).where(and(eq(joined_events.user_email, email), eq(joined_events.event_id, eventId)));
 
       // --- Send TIME IN Email ---
       try {
         const msg = {
           to: ticket.user_email,
           from: 'jmmvenegas@antiquespride.edu.ph', // Your verified sender
-          subject: `Scan Confirmation: ${ticket.EventName}`,
+          subject: `Scan Confirmation: ${ticket.event_name}`,
           html: `
             <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
               <h2 style="color: #006400;">Scan Successful!</h2>
               <p>This email confirms your attendance for the event:</p>
-              <p><strong>Event:</strong> ${ticket.EventName}</p>
+              <p><strong>Event:</strong> ${ticket.event_name}</p>
               <p><strong>Status:</strong> <span style="color: #006400; font-weight: bold;">TIME IN</span></p>
               <p><strong>Time:</strong> ${friendlyTime}</p>
               <p style="margin-top: 20px; font-size: 0.9em; color: #777;">
@@ -106,22 +104,19 @@ server.post("/verify-ticket", async (req, res) => {
 
       // --- THIS IS THE SECOND SCAN (TIME OUT) ---
     } else if (ticket.time_out === null) {
-      await db.pool.query(
-        "UPDATE joined_events SET time_out = ? WHERE user_email = ? AND event_id = ?",
-        [now, email, eventId]
-      );
+      await db.update(joined_events).set({ time_out: now }).where(and(eq(joined_events.user_email, email), eq(joined_events.event_id, eventId)));
 
       // --- Send TIME OUT Email ---
       try {
         const msg = {
           to: ticket.user_email,
           from: 'jmmvenegas@antiquespride.edu.ph', // Your verified sender
-          subject: `Scan Confirmation: ${ticket.EventName}`,
+          subject: `Scan Confirmation: ${ticket.event_name}`,
           html: `
             <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
               <h2 style="color: #b8860b;">Scan Successful!</h2>
               <p>This email confirms your checkout for the event:</p>
-              <p><strong>Event:</strong> ${ticket.EventName}</p>
+              <p><strong>Event:</strong> ${ticket.event_name}</p>
               <p><strong>Status:</strong> <span style="color: #b8860b; font-weight: bold;">TIME OUT</span></p>
               <p><strong>Time:</strong> ${friendlyTime}</p>
               <p style="margin-top: 20px; font-size: 0.9em; color: #777;">
@@ -171,10 +166,7 @@ server.put("/chats/mark-all-read", async (req, res) => {
 
   try {
     // Update the 'last_read_at' timestamp for ALL events this user has joined
-    await db.pool.query(
-      "UPDATE joined_events SET last_read_at = NOW() WHERE user_email = ?",
-      [email]
-    );
+    await db.update(joined_events).set({ last_read_at: new Date() }).where(eq(joined_events.user_email, email));
     res.json({ success: true });
   } catch (err) {
     console.error("Error marking all chats as read:", err);
@@ -190,17 +182,11 @@ server.get("/chats/notifications/:email", async (req, res) => {
 
   try {
     // 1. Get all chatrooms (events) the user is in, now JOINing to get the EventName
-    const result = await db.pool.query(
-      `SELECT
-         j.event_id,
-         j.last_read_at,
-         e.EventName
-       FROM joined_events j
-       INNER JOIN addevent e ON j.event_id = e.EventID
-       WHERE j.user_email = ?`,
-      [email]
-    );
-    const joinedRows = Array.isArray(result[0]) ? result[0] : result;
+    const joinedRows = await db.select({
+      event_id: joined_events.event_id,
+      last_read_at: joined_events.last_read_at,
+      event_name: events.event_name
+    }).from(joined_events).innerJoin(events, eq(joined_events.event_id, events.event_id)).where(eq(joined_events.user_email, email));
 
     if (joinedRows.length === 0) {
       return res.json({ unreadChats: [] }); // User isn't in any chats
@@ -210,30 +196,23 @@ server.get("/chats/notifications/:email", async (req, res) => {
 
     // 2. Loop and check each chatroom for new messages
     for (const event of joinedRows) {
-      const { event_id, last_read_at, EventName } = event;
+      const { event_id, last_read_at, event_name } = event;
 
       // 3. Check for any message sent by ANOTHER user
-      let query;
-      let params;
-
+      let messageRows;
       if (last_read_at === null) {
         // If they've never read, any message from others is new
-        query = "SELECT 1 FROM chat_messages WHERE chatroom_id = ? AND user_email != ? LIMIT 1";
-        params = [event_id, email];
+        messageRows = await db.select().from(chat_messages).where(and(eq(chat_messages.chatroom_id, event_id), sql`${chat_messages.user_email} != ${email}`)).limit(1);
       } else {
         // If they have read, check for messages sent after that time
-        query = "SELECT 1 FROM chat_messages WHERE chatroom_id = ? AND user_email != ? AND sent_at > ? LIMIT 1";
-        params = [event_id, email, last_read_at];
+        messageRows = await db.select().from(chat_messages).where(and(eq(chat_messages.chatroom_id, event_id), sql`${chat_messages.user_email} != ${email}`, gt(chat_messages.sent_at, last_read_at))).limit(1);
       }
-
-      const messageResult = await db.pool.query(query, params);
-      const messageRows = Array.isArray(messageResult[0]) ? messageResult[0] : messageResult;
 
       // 4. If we find a new message, add this event to our list
       if (messageRows.length > 0) {
         unreadChats.push({
           eventId: event_id,
-          eventName: EventName
+          eventName: event_name
         });
       }
     }
@@ -251,16 +230,10 @@ server.get("/chats/notifications/:email", async (req, res) => {
 server.get("/event/:id/join-count", async (req, res) => {
   const { id } = req.params;
   try {
-    const result = await db.pool.query(
-      "SELECT COUNT(*) AS total FROM joined_events WHERE event_id = ?",
-      [id]
-    );
-
-    // Normalize result
-    const rows = Array.isArray(result[0]) ? result[0] : result;
+    const result = await db.select({ total: count() }).from(joined_events).where(eq(joined_events.event_id, id));
 
     // Convert BigInt to number safely
-    const total = Number(rows[0]?.total ?? 0);
+    const total = Number(result[0]?.total ?? 0);
 
     res.json({ total });
   } catch (err) {
@@ -274,21 +247,13 @@ server.get("/event/:id/participants", async (req, res) => {
   const { id } = req.params;
 
   try {
-    const result = await db.pool.query(
-      `SELECT
-        j.user_email AS email,
-        COALESCE(u.name, j.user_email) AS name,
-        j.joined_at AS joinedAt,
-        j.time_in AS timeIn,
-        j.time_out AS timeOut
-      FROM joined_events j
-      LEFT JOIN users u ON j.user_email = u.email
-      WHERE j.event_id = ?`,
-      [id]
-    );
-
-    // FIX: Normalize result shape
-    const rows = Array.isArray(result[0]) ? result[0] : result;
+    const rows = await db.select({
+      email: joined_events.user_email,
+      name: sql`COALESCE(${users.name}, ${joined_events.user_email})`,
+      joinedAt: joined_events.joined_at,
+      timeIn: joined_events.time_in,
+      timeOut: joined_events.time_out
+    }).from(joined_events).leftJoin(users, eq(joined_events.user_email, users.email)).where(eq(joined_events.event_id, id));
 
     res.set('Cache-Control', 'no-store');
     res.json(rows);
@@ -312,19 +277,13 @@ server.get("/my-chats/:email", async (req, res) => {
   const email = req.params.email;
 
   try {
-    const result = await db.pool.query(
-      `SELECT
-          e.EventID,
-          e.EventName,
-          e.EventPhoto,
-          e.EventDept,
-          e.EventVenue
-        FROM joined_events j
-        INNER JOIN addevent e ON j.event_id = e.EventID
-        WHERE j.user_email = ?
-        ORDER BY j.joined_at DESC`,
-      [email]
-    );
+    const result = await db.select({
+      event_id: events.event_id,
+      event_name: events.event_name,
+      event_photo: events.event_photo,
+      event_dept: events.event_dept,
+      event_venue: events.event_venue
+    }).from(joined_events).innerJoin(events, eq(joined_events.event_id, events.event_id)).where(eq(joined_events.user_email, email)).orderBy(desc(joined_events.joined_at));
 
     res.json(result);
   } catch (err) {
@@ -343,11 +302,12 @@ server.post("/chatroom/:id", async (req, res) => {
   }
 
   try {
-    await db.pool.query(
-      `INSERT INTO chat_messages (chatroom_id, user_email, message_content, sent_at)
-        VALUES (?, ?, ?, NOW())`,
-      [chatroomId, user_email, message_content]
-    );
+    await db.insert(chat_messages).values({
+      chatroom_id: chatroomId,
+      user_email,
+      message_content,
+      sent_at: new Date()
+    });
 
     res.json({ success: true });
   } catch (err) {
@@ -361,12 +321,7 @@ server.post("/chatroom/:id", async (req, res) => {
 server.get("/chatroom/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await db.pool.query(
-      "SELECT user_email, message_content, sent_at FROM chat_messages WHERE chatroom_id = ? ORDER BY sent_at ASC",
-      [id]
-    );
-
-    const rows = Array.isArray(result[0]) ? result[0] : result;
+    const rows = await db.select().from(chat_messages).where(eq(chat_messages.chatroom_id, id)).orderBy(chat_messages.sent_at);
     res.json(rows);
 
   } catch (err) {
@@ -389,14 +344,9 @@ server.post("/join-event", async (req, res) => {
 
   try {
     // 1. Check if already joined
-    const result = await db.pool.query(
-      "SELECT * FROM joined_events WHERE user_email = ? AND event_id = ?",
-      [email, eventId]
-    );
-    // This is the line that fixes it
-    const existingRows = Array.isArray(result[0]) ? result[0] : result;
+    const existing = await db.select().from(joined_events).where(and(eq(joined_events.user_email, email), eq(joined_events.event_id, eventId)));
 
-    if (existingRows.length > 0) {
+    if (existing.length > 0) {
       // ...
       return res.status(409).json({ success: false, message: "Already joined this event" });
     }
@@ -413,10 +363,11 @@ server.post("/join-event", async (req, res) => {
     const qrCodeDataURL = await qr.toDataURL(qrData);
 
     // 3. Save to database (Unchanged)
-    await db.pool.query(
-      "INSERT INTO joined_events (user_email, event_id, ticket_id) VALUES (?, ?, ?)",
-      [email, eventId, ticket_id]
-    );
+    await db.insert(joined_events).values({
+      user_email: email,
+      event_id: eventId,
+      ticket_id
+    });
 
     // ✅ --- 4. PREPARE EMAIL ATTACHMENT ---
     // Extract the base64 content from the data URL
@@ -515,10 +466,10 @@ server.post("/events/delete", async (req, res) => {
     const { id } = req.body;
 
 
-    await db.pool.query("DELETE FROM joined_events WHERE event_id = ?", [id]);
+    await db.delete(joined_events).where(eq(joined_events.event_id, id));
 
 
-    await db.pool.query("DELETE FROM addevent WHERE EventID = ?", [id]);
+    await db.delete(events).where(eq(events.event_id, id));
 
     res.json({ success: true, message: "Event and joined entries deleted successfully!" });
   } catch (err) {
@@ -566,24 +517,21 @@ server.post("/google-login", async (req, res) => {
     }
 
     // ✅ query DB
-    const result = await db.pool.query("SELECT * FROM users WHERE email = ?", [email]);
+    const usersResult = await db.select().from(users).where(eq(users.email, email));
 
-    let rows = Array.isArray(result[0]) ? result[0] : result;
-
-    let user = rows.length > 0 ? rows[0] : null;
+    let user = usersResult.length > 0 ? usersResult[0] : null;
 
     if (!user) {
-      const insertResult = await db.pool.query(
-        "INSERT INTO users (google_id, name, email, picture) VALUES (?, ?, ?, ?)",
-        [googleId, name, email, picture]
-      );
-
-      const insertedId =
-        Array.isArray(insertResult) ? insertResult[0].insertId : insertResult.insertId;
+      const insertResult = await db.insert(users).values({
+        google_id,
+        name,
+        email,
+        picture
+      }).returning({ id: users.id });
 
       user = {
-        id: Number(insertedId),   // ✅ FIX BigInt
-        google_id: googleId,
+        id: insertResult[0].id,
+        google_id,
         name,
         email,
         picture,
@@ -622,10 +570,10 @@ server.get('/manageEvents', verifyToken, (req, res) => {
 // --- MODIFIED: Get Events (changed ORDER BY) ---
 server.get("/events", async (req, res) => {
   try {
-    const rows = await db.pool.query(
-      // --- MODIFIED: Order by Start Date ---
-      "SELECT *, EventStartDate AS EventDate FROM addevent ORDER BY EventStartDate ASC"
-    );
+    const rows = await db.select({
+      ...events,
+      EventDate: events.event_start_date
+    }).from(events).orderBy(events.event_start_date);
     res.send(rows);
   } catch (err) {
     console.error("Error fetching events:", err);
@@ -653,13 +601,10 @@ server.get('/accounts', verifyToken, (req, res) => {
 server.get("/events/status/:status", async (req, res) => {
   try {
     const { status } = req.params;
-    const result = await db.pool.query(
-      // --- MODIFIED: Order by Start Date ---
-      "SELECT *, EventStartDate AS EventDate FROM addevent WHERE EventStatus = ? ORDER BY EventStartDate DESC",
-      [status]
-    );
-    // ...
-    const rows = Array.isArray(result[0]) ? result[0] : result;
+    const rows = await db.select({
+      ...events,
+      EventDate: events.event_start_date
+    }).from(events).where(eq(events.event_status, status)).orderBy(desc(events.event_start_date));
     res.json(rows);
 
   } catch (err) {
@@ -685,22 +630,16 @@ server.put("/events/status/update", async (req, res) => {
     if (status === "Denied") {
       // 3. If denying, update status AND the reason
       // We default the reason to an empty string if it's not provided
-      query = "UPDATE addevent SET EventStatus = ?, EventDenialReason = ? WHERE EventID = ?";
-      params = [status, reason || "", id];
+      await db.update(events).set({ event_status: status, event_denial_reason: reason || "" }).where(eq(events.event_id, id));
 
     } else if (status === "Approved") {
       // 4. If approving, update status and CLEAR any previous denial reason
-      query = "UPDATE addevent SET EventStatus = ?, EventDenialReason = NULL WHERE EventID = ?";
-      params = [status, id];
+      await db.update(events).set({ event_status: status, event_denial_reason: null }).where(eq(events.event_id, id));
 
     } else {
       // 5. Fallback for any other status (if you have them)
-      query = "UPDATE addevent SET EventStatus = ? WHERE EventID = ?";
-      params = [status, id];
+      await db.update(events).set({ event_status: status }).where(eq(events.event_id, id));
     }
-
-    // 6. Execute the query
-    await db.pool.query(query, params);
     res.json({ success: true, message: `Event ${status} successfully!` });
 
   } catch (err) {
@@ -710,8 +649,8 @@ server.put("/events/status/update", async (req, res) => {
 });
 
 
-// --- MODIFIED: /addevent/add endpoint ---
-server.post('/addevent/add', upload.single('photo'), async (req, res) => {
+// --- MODIFIED: /events/add endpoint ---
+server.post('/events/add', upload.single('photo'), async (req, res) => {
   const task = req.body;
   const file = req.file;
 
@@ -720,23 +659,17 @@ server.post('/addevent/add', upload.single('photo'), async (req, res) => {
   const startDate = task.startDate;
   const endDate = task.endDate || null;
 
-  // --- MODIFIED: SQL query to use new date columns ---
-  const sql = `
-    INSERT INTO addevent (EventName, EventTime, EventStartDate, EventEndDate, EventVenue, EventDescription, EventPhoto, EventDept, EventStatus)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Submitted')
-  `;
-
-  // --- MODIFIED: Values array to match new SQL query ---
-  await db.pool.query(sql, [
-    task.title,
-    task.time,
-    startDate,  // Use startDate
-    endDate,    // Use endDate
-    task.venue,
-    task.description,
-    file ? file.originalname : null,
-    task.dept
-  ]);
+  await db.insert(events).values({
+    event_name: task.title,
+    event_time: task.time,
+    event_start_date: startDate,
+    event_end_date: endDate,
+    event_venue: task.venue,
+    event_description: task.description,
+    event_photo: file ? file.originalname : null,
+    event_dept: task.dept,
+    event_status: 'Submitted'
+  });
   // --- END OF MODIFICATION ---
 
   res.json({ success: true });
@@ -768,12 +701,9 @@ server.post('/auth/login', async (req, res) => {
     const { username, password } = req.body;
     console.log("Login attempt:", username, password);
 
-    const [rows] = await db.pool.query(
-      "SELECT * FROM accounts WHERE account_username = ? AND account_password = ?",
-      [username, password]
-    );
+    const accountsResult = await db.select().from(accounts).where(and(eq(accounts.account_username, username), eq(accounts.account_password, password)));
 
-    const user = Array.isArray(rows) ? rows[0] : rows;
+    const user = accountsResult[0];
     if (!user) {
       return res.status(401).json({ success: false, message: "Invalid username or password" });
     }
@@ -811,8 +741,7 @@ server.post('/auth/login', async (req, res) => {
 
 server.get('/accounts/order/id', async (req, res) => {
   try {
-    const result = await db.pool.query("SELECT * FROM accounts ORDER BY account_id ASC");
-    const data = Array.isArray(result[0]) ? result[0] : result;
+    const data = await db.select().from(accounts).orderBy(accounts.account_id);
     res.json(data);
   } catch (err) {
     console.error("Database query failed:", err);
@@ -825,10 +754,10 @@ server.put('/accounts/edit', async (req, res) => {
   try {
     const task = req.body;
 
-    const [result] = await db.pool.query(
-      "UPDATE accounts SET account_username = ?, account_password = ? WHERE account_id = ?",
-      [task.username, task.password, task.id]
-    );
+    await db.update(accounts).set({
+      account_username: task.username,
+      account_password: task.password
+    }).where(eq(accounts.account_id, task.id));
 
     console.log("Update result:", result);
     res.json({ message: "Account updated successfully!" });
@@ -846,10 +775,7 @@ server.post('/accounts/delete', async (req, res) => {
 
     const { id } = req.body;
 
-    const [result] = await db.pool.query(
-      'DELETE FROM accounts WHERE account_id = ?',
-      [id]
-    );
+    await db.delete(accounts).where(eq(accounts.account_id, id));
 
     console.log('Deleted:', result);
 
@@ -874,12 +800,10 @@ server.post('/account/search', async (req, res) => {
 
     console.log("Searching accounts:", depKeyword, roleKeyword);
 
-    const [rows] = await db.pool.query(
-      `SELECT * FROM accounts
-        WHERE LOWER(account_name) LIKE LOWER(?)
-          OR LOWER(account_type) LIKE LOWER(?)`,
-      [depKeyword, roleKeyword]
-    );
+    const rows = await db.select().from(accounts).where(or(
+      sql`LOWER(${accounts.account_name}) LIKE LOWER(${depKeyword})`,
+      sql`LOWER(${accounts.account_type}) LIKE LOWER(${roleKeyword})`
+    ));
 
     res.json(rows);
   } catch (err) {
@@ -891,16 +815,13 @@ server.post('/account/search', async (req, res) => {
 server.post('/accounts/post', async (req, res) => {
   try {
     const task = req.body;
-    const result = await db.pool.query(
-      'INSERT INTO accounts (account_name, account_username, account_password, account_type, account_creation) VALUES (?, ?, ?, ?, ?)',
-      [
-        task.name,
-        task.username,
-        task.password,
-        task.role,
-        task.creation
-      ]
-    );
+    const result = await db.insert(accounts).values({
+      account_name: task.name,
+      account_username: task.username,
+      account_password: task.password,
+      account_type: task.role,
+      account_creation: task.creation
+    });
 
     console.log(result);
     res.json({ success: true, insertedId: result.insertId });
@@ -910,4 +831,6 @@ server.post('/accounts/post', async (req, res) => {
   }
 });
 
-server.listen(port, () => console.log(`API server is now running at ${host}:${port}`));
+(async () => {
+  server.listen(port, () => console.log(`API server is now running at ${host}:${port}`));
+})();
