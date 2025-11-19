@@ -11,82 +11,60 @@ import FBLOGO from './assets/fblogo.png';
 import INSTALOGO from './assets/instalogo.png';
 import STAT from './assets/stat.png';
 
-// --- STYLES FOR CHAT BUBBLES ---
+// --- STYLES ---
 const ChatStyles = () => (
   <style>{`
     .chat-layout-container {
       display: flex;
-      height: calc(100vh - 7rem); /* Full height minus navbar */
+      height: calc(100vh - 7rem);
     }
-
     .chat-list-panel {
-      flex: 0 0 350px; /* Fixed width for chat list */
+      flex: 0 0 350px;
       border-right: 1px solid #dee2e6;
       display: flex;
       flex-direction: column;
       height: 100%;
     }
-
     .chat-window-panel {
-      flex: 1; /* Takes remaining width */
+      flex: 1;
       display: flex;
       flex-direction: column;
       height: 100%;
     }
+    .chat-list-body { overflow-y: auto; }
+    
+    .chat-list-item { cursor: pointer; border-bottom: 1px solid #f0f0f0; }
+    .chat-list-item:hover { background-color: #f8f9fa; }
+    .chat-list-item.active { background-color: #711212; color: white; }
+    .chat-list-item.active .text-muted { color: #f0f0f0 !important; }
 
-    .chat-list-body {
-      overflow-y: auto;
-    }
+    .chat-avatar { width: 50px; height: 50px; object-fit: cover; }
 
-    .chat-list-item {
-      cursor: pointer;
-      border-bottom: 1px solid #f0f0f0;
-    }
-    .chat-list-item:hover {
-      background-color: #f8f9fa;
-    }
-    .chat-list-item.active {
-      background-color: #711212;
-      color: white;
-    }
-    .chat-list-item.active .text-muted {
-      color: #f0f0f0 !important;
-    }
+    .chat-window-body { background-color: #f5f5f5; }
+    .chat-bubble { padding: 10px 15px; border-radius: 20px; max-width: 70%; word-wrap: break-word; }
+    .chat-bubble.me { background-color: #711212; color: white; border-bottom-right-radius: 5px; }
+    .chat-bubble.other { background-color: #ffffff; color: #333; border: 1px solid #e9e9e9; border-bottom-left-radius: 5px; }
+    .chat-timestamp { font-size: 0.75rem; color: #6c757d; margin-top: 2px; }
 
-    .chat-avatar {
-      width: 50px;
-      height: 50px;
-      object-fit: cover;
+    /* Mobile Modal Specifics */
+    .mobile-chat-modal {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-
-    .chat-window-body {
-      background-color: #f5f5f5; /* Light gray background for chat */
-    }
-
-    .chat-bubble {
-      padding: 10px 15px;
-      border-radius: 20px;
-      max-width: 70%;
-      word-wrap: break-word;
-    }
-
-    .chat-bubble.me {
-      background-color: #711212; /* Theme color */
-      color: white;
-      border-bottom-right-radius: 5px;
-    }
-
-    .chat-bubble.other {
-      background-color: #ffffff; /* White bubble */
-      color: #333;
-      border: 1px solid #e9e9e9;
-      border-bottom-left-radius: 5px;
-    }
-
-    .chat-timestamp {
-      font-size: 0.75rem;
-      color: #6c757d;
-      margin-top: 2px;
+    .mobile-chat-content {
+      width: 95%;
+      height: 90%;
+      background: white;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     }
   `}</style>
 );
@@ -120,7 +98,6 @@ export default function Chats() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Fetch joined events
   useEffect(() => {
     if (currentUserEmail) {
       axios.get(`${import.meta.env.VITE_API_URL}/my-chats/${currentUserEmail}`)
@@ -132,14 +109,12 @@ export default function Chats() {
     }
   }, [currentUserEmail]);
 
-  // Auto-scroll to bottom of messages
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages]);
+  }, [messages, activeChatEvent]); // Add activeChatEvent to scroll on open
 
-  // Poll messages when a chat is active
   useEffect(() => {
     let poll;
     if (activeChatEvent) {
@@ -152,33 +127,13 @@ export default function Chats() {
     };
   }, [activeChatEvent]);
 
-  // Check for session storage event on load
-  useEffect(() => {
-    if (isLargeScreen && joinedEvents.length > 0) {
-      const eventIdToOpen = sessionStorage.getItem('openChatOnLoad');
-      if (eventIdToOpen) {
-        const eventToOpen = joinedEvents.find(e =>
-          (e.EventID || e.event_id) === parseInt(eventIdToOpen)
-        );
-
-        if (eventToOpen) {
-          handleViewChat(eventToOpen);
-          sessionStorage.removeItem('openChatOnLoad');
-        } else {
-          sessionStorage.removeItem('openChatOnLoad');
-        }
-      }
-    }
-  }, [joinedEvents, isLargeScreen]);
-
   const fetchMessages = async (eventId) => {
     try {
       const res = await axios.get(`${import.meta.env.VITE_API_URL}/chatroom/${eventId}`);
-      // Ensure messages is always an array
       setMessages(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Error fetching messages:", err);
-      setMessages([]); // Fallback to empty array on error
+      setMessages([]);
     }
   };
 
@@ -192,19 +147,16 @@ export default function Chats() {
       }).catch(err => console.error("Failed to mark as read", err));
     };
 
-    if (isLargeScreen) {
-      setMessages([]); // Clear previous messages immediately
-      setActiveChatEvent(event);
-      markAsRead();
-    } else {
-      markAsRead();
-      navigate(`/chatroom/${eventId}`);
-    }
+    // UNIFIED LOGIC: Set Active Chat for BOTH Mobile and Desktop
+    setMessages([]); 
+    setActiveChatEvent(event);
+    markAsRead();
+    
+    // Note: We removed the 'navigate' call here to prevent the white screen.
   };
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !activeChatEvent) return;
-
     const eventId = activeChatEvent.EventID || activeChatEvent.event_id;
 
     try {
@@ -225,7 +177,6 @@ export default function Chats() {
     setMessages([]);
   };
 
-  // Helper to get data safely
   const getEventData = (event) => {
     if (!event) return null;
     return {
@@ -237,20 +188,89 @@ export default function Chats() {
     };
   };
 
-  // --- SAFE DATE FORMATTER (PREVENTS CRASHES) ---
   const formatTime = (dateString) => {
     try {
       if (!dateString) return "";
       const d = new Date(dateString);
-      if (isNaN(d.getTime())) return ""; // Invalid date
-      return d.toLocaleTimeString();
-    } catch (e) {
-      return "";
-    }
+      if (isNaN(d.getTime())) return "";
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch (e) { return ""; }
   };
 
-  // Calculate active chat data outside of JSX return
   const activeChatData = activeChatEvent ? getEventData(activeChatEvent) : null;
+
+  // --- REUSABLE CHAT CONTENT RENDERER ---
+  // This is used by both the Desktop Right Panel and the Mobile Modal
+  const renderChatContent = () => {
+    if (!activeChatData) return null;
+    return (
+      <div className="d-flex flex-column h-100 bg-white">
+        {/* Header */}
+        <div className="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
+          <div className="d-flex align-items-center">
+            <img
+              src={activeChatData.photo ? `${import.meta.env.VITE_API_URL}/api/upload/${activeChatData.photo}` : "https://via.placeholder.com/50"}
+              className="rounded-circle me-3 chat-avatar"
+              alt="avatar"
+              onError={(e) => { e.target.src = "https://via.placeholder.com/50"; }}
+            />
+            <div>
+              <h5 className="fw-bold mb-0 text-dark">{activeChatData.name}</h5>
+              <small className="text-muted">
+                {activeChatData.venue}
+              </small>
+            </div>
+          </div>
+          <button className="btn btn-sm btn-outline-secondary" onClick={handleCloseActiveChat}>
+            <i className="bi bi-x-lg"></i>
+          </button>
+        </div>
+
+        {/* Messages Body */}
+        <div className="card-body chat-window-body overflow-auto p-3 flex-grow-1">
+          {messages && messages.length > 0 ? (
+            messages.map((m, idx) => {
+              const isMe = m.user_email === currentUserEmail;
+              return (
+                <div key={idx} className={`d-flex mb-3 ${isMe ? 'justify-content-end' : 'justify-content-start'}`}>
+                  <div style={{ maxWidth: '85%' }}>
+                    <div className={`small text-muted ${isMe ? 'text-end' : ''}`}>
+                      {m.user_email.split('@')[0]}
+                    </div>
+                    <div className={`chat-bubble ${isMe ? 'me' : 'other'}`}>
+                      {m.message_content}
+                    </div>
+                    <div className={`chat-timestamp ${isMe ? 'text-end' : ''}`}>
+                      {formatTime(m.sent_at)}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <p className="text-muted text-center mt-4">No messages yet. Say hi 👋</p>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Input Footer */}
+        <div className="card-footer bg-white p-3">
+          <div className="d-flex gap-2">
+            <input
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSendMessage(); }}
+              className="form-control"
+              placeholder="Type a message..."
+            />
+            <button className="btn btn-danger" style={{ backgroundColor: "#711212" }} onClick={handleSendMessage}>
+              <i className="bi bi-send-fill"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <>
@@ -258,10 +278,8 @@ export default function Chats() {
 
       {/* Navbar */}
       <div className='container-fluid p-0'>
-        <nav
-          className="navbar navbar-dark fixed-top d-flex justify-content-between px-3"
-          style={{ zIndex: 1050, height: '7rem', paddingTop: '1rem', paddingBottom: '1rem', backgroundColor: '#711212ff' }}
-        >
+        <nav className="navbar navbar-dark fixed-top d-flex justify-content-between px-3"
+          style={{ zIndex: 1050, height: '7rem', paddingTop: '1rem', paddingBottom: '1rem', backgroundColor: '#711212ff' }}>
           <div className="d-flex align-items-center">
             <img src={UALOGO} className="ua-logo me-2" alt="UA logo" style={{ width: "50px" }} />
             <div className="text-white">
@@ -275,82 +293,58 @@ export default function Chats() {
         </nav>
 
         {/* Sidebar */}
-        <div
-          className={`border-end text-light position-fixed top-0 start-0 h-100 sidebar d-flex flex-column ${sidebarOpen ? "show" : ""}`}
-          style={{ width: '250px', zIndex: 1040, boxShadow: '2px 0 10px rgba(0,0,0,0.1)', backgroundColor: '#711212ff' }}
-        >
-          <div className="px-4 pt-4 pb-2 border-bottom d-flex align-items-center gap-2">
-            <img src={UALOGO} alt="UA logo" style={{ width: '40px' }} />
-            <div>
-              <div className="fw-bold" style={{ fontSize: '1.1rem' }}>University of Antique</div>
-              <div className="text-muted" style={{ fontSize: '0.85rem' }}>Sibalom Campus</div>
+        <div className={`border-end text-light position-fixed top-0 start-0 h-100 sidebar d-flex flex-column ${sidebarOpen ? "show" : ""}`}
+          style={{ width: '250px', zIndex: 1040, boxShadow: '2px 0 10px rgba(0,0,0,0.1)', backgroundColor: '#711212ff' }}>
+             {/* Sidebar content same as before... */}
+             <div className="px-4 pt-4 pb-2 border-bottom d-flex align-items-center gap-2">
+              <img src={UALOGO} alt="UA logo" style={{ width: '40px' }} />
+              <div>
+                <div className="fw-bold" style={{ fontSize: '1.1rem' }}>University of Antique</div>
+                <div className="text-muted" style={{ fontSize: '0.85rem' }}>Sibalom Campus</div>
+              </div>
             </div>
-          </div>
-          <ul className="nav flex-column mt-5 px-3">
-            <li className="nav-item mb-2">
-              <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/home">
-                <i className="bi bi-house-door-fill"></i> Home
-              </a>
-            </li>
-            <li className="nav-item mb-2">
-              <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/calendar">
-                <i className="bi bi-calendar-event-fill"></i> Calendar
-              </a>
-            </li>
-            <li className="nav-item mb-2">
-              <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/events">
-                <i className="bi bi-calendar2-event"></i> Events
-              </a>
-            </li>
-            <li className="nav-item mb-2">
-              <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded" href="/chats"
-                style={{ borderRadius: '4px', backgroundColor: 'rgba(255, 255, 255, 0.3)' }}>
-                <i className="bi bi-chat-dots-fill"></i> Chat
-              </a>
-            </li>
-            {/* Social Links */}
-            <li className="nav-item d-flex justify-content-center gap-3 mt-5">
-              <a className="nav-link p-0" href="#" target="_blank" rel="noopener noreferrer">
-                <img style={{ width: '2rem', marginTop: "clamp(14rem, 17vw, 30rem)" }} src={UALOGO} alt="UA" />
-              </a>
-              <a className="nav-link p-0" href="#" target="_blank" rel="noopener noreferrer">
-                <img style={{ width: '2rem', marginTop: "clamp(14rem, 17vw, 30rem)" }} src={FBLOGO} alt="FB" />
-              </a>
-              <a className="nav-link p-0" href="#" target="_blank" rel="noopener noreferrer">
-                <img style={{ width: '2rem', marginTop: "clamp(14rem, 17vw, 30rem)" }} src={INSTALOGO} alt="IG" />
-              </a>
-            </li>
-            <li className="nav-item mb-2 justify-content-center d-flex">
-              <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg text-center"
-                href="/login"
-                onClick={handleLogout}>
-                <i className="bi bi-box-arrow-right"></i> Log out
-              </a>
-            </li>
-          </ul>
-          <img
-            src={STAT}
-            alt="Sidebar design"
-            style={{
-              position: "absolute", bottom: "-4.5rem", left: "50%",
-              transform: "translateX(-55%)", width: "400px",
-              opacity: 0.9, zIndex: -1, pointerEvents: "none"
-            }}
-          />
+            <ul className="nav flex-column mt-5 px-3">
+              <li className="nav-item mb-2">
+                <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/home">
+                  <i className="bi bi-house-door-fill"></i> Home
+                </a>
+              </li>
+              <li className="nav-item mb-2">
+                <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/calendar">
+                  <i className="bi bi-calendar-event-fill"></i> Calendar
+                </a>
+              </li>
+              <li className="nav-item mb-2">
+                <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/events">
+                  <i className="bi bi-calendar2-event"></i> Events
+                </a>
+              </li>
+              <li className="nav-item mb-2">
+                <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded" href="/chats"
+                  style={{ borderRadius: '4px', backgroundColor: 'rgba(255, 255, 255, 0.3)' }}>
+                  <i className="bi bi-chat-dots-fill"></i> Chat
+                </a>
+              </li>
+              <li className="nav-item mb-2 justify-content-center d-flex mt-5">
+                <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg text-center"
+                  href="/login" onClick={handleLogout}>
+                  <i className="bi bi-box-arrow-right"></i> Log out
+                </a>
+              </li>
+            </ul>
         </div>
       </div>
 
-      {/* --- CHAT LAYOUT --- */}
-      <div
-        style={{
-          marginLeft: isLargeScreen ? '250px' : '0',
-          marginTop: '7rem',
-          transition: 'margin-left 0.3s ease-in-out'
-        }}
-      >
+      {/* --- MAIN CONTENT AREA --- */}
+      <div style={{
+        marginLeft: isLargeScreen ? '250px' : '0',
+        marginTop: '7rem',
+        transition: 'margin-left 0.3s ease-in-out'
+      }}>
         {isLargeScreen ? (
+          /* --- DESKTOP VIEW --- */
           <div className="chat-layout-container">
-            {/* --- LEFT PANEL: CHAT LIST --- */}
+            {/* Left Panel: List */}
             <div className="chat-list-panel bg-white">
               <div className="p-3 border-bottom">
                 <h5 className="mb-0 fw-bold">My Chats</h5>
@@ -360,22 +354,13 @@ export default function Chats() {
                   <div className="list-group list-group-flush">
                     {joinedEvents.map((event, i) => {
                       const data = getEventData(event);
-                      const isActive = activeChatEvent &&
-                        (activeChatEvent.EventID === data.id || activeChatEvent.event_id === data.id);
-
+                      const isActive = activeChatEvent && (activeChatEvent.EventID === data.id || activeChatEvent.event_id === data.id);
                       return (
-                        <a
-                          key={i}
-                          className={`list-group-item list-group-item-action chat-list-item ${isActive ? 'active' : ''}`}
-                          onClick={() => handleViewChat(event)}
-                        >
+                        <a key={i} className={`list-group-item list-group-item-action chat-list-item ${isActive ? 'active' : ''}`}
+                          onClick={() => handleViewChat(event)}>
                           <div className="d-flex align-items-center">
-                            <img
-                              src={data.photo ? `${import.meta.env.VITE_API_URL}/api/upload/${data.photo}` : "https://via.placeholder.com/50"}
-                              className="rounded-circle me-3 chat-avatar"
-                              alt={data.name}
-                              onError={(e) => { e.target.src = "https://via.placeholder.com/50"; }}
-                            />
+                            <img src={data.photo ? `${import.meta.env.VITE_API_URL}/api/upload/${data.photo}` : "https://via.placeholder.com/50"}
+                              className="rounded-circle me-3 chat-avatar" alt={data.name} onError={(e) => { e.target.src = "https://via.placeholder.com/50"; }} />
                             <div className="flex-grow-1">
                               <div className="fw-bold text-truncate">{data.name}</div>
                               <div className="text-truncate" style={{ fontSize: "0.8rem" }}>{data.venue}</div>
@@ -391,93 +376,23 @@ export default function Chats() {
               </div>
             </div>
 
-            {/* --- RIGHT PANEL: CHAT WINDOW --- */}
+            {/* Right Panel: Window */}
             <div className="chat-window-panel">
-              {/* Check for both activeChatEvent AND the processed Data */}
-              {activeChatEvent && activeChatData ? (
-                <div className="card h-100 border-0 rounded-0">
-                  {/* Chat Header */}
-                  <div className="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
-                    <div className="d-flex align-items-center">
-                      <img
-                        src={activeChatData.photo ? `${import.meta.env.VITE_API_URL}/api/upload/${activeChatData.photo}` : "https://via.placeholder.com/50"}
-                        className="rounded-circle me-3 chat-avatar"
-                        alt={activeChatData.name}
-                        onError={(e) => { e.target.src = "https://via.placeholder.com/50"; }}
-                      />
-                      <div>
-                        <h5 className="fw-bold mb-0">{activeChatData.name}</h5>
-                        <small className="text-muted">
-                          {activeChatData.venue}
-                          {activeChatData.date ? ` • ${new Date(activeChatData.date).toDateString()}` : ''}
-                        </small>
-                      </div>
-                    </div>
-                    <button className="btn btn-sm btn-outline-secondary" onClick={handleCloseActiveChat}>
-                      <i className="bi bi-x-lg"></i>
-                    </button>
-                  </div>
-
-                  {/* Message Body */}
-                  <div className="card-body chat-window-body overflow-auto p-3">
-                    {messages && messages.length > 0 ? (
-                      messages.map((m, idx) => {
-                        const isMe = m.user_email === currentUserEmail;
-                        return (
-                          <div
-                            key={idx}
-                            className={`d-flex mb-3 ${isMe ? 'justify-content-end' : 'justify-content-start'}`}
-                          >
-                            <div style={{ maxWidth: '70%' }}>
-                              <div className={`small text-muted ${isMe ? 'text-end' : ''}`}>
-                                {m.user_email}
-                              </div>
-                              <div className={`chat-bubble ${isMe ? 'me' : 'other'}`}>
-                                {m.message_content}
-                              </div>
-                              <div className={`chat-timestamp ${isMe ? 'text-end' : ''}`}>
-                                {formatTime(m.sent_at)}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <p className="text-muted text-center mt-4">No messages yet. Say hi 👋</p>
-                    )}
-                    <div ref={messagesEndRef} />
-                  </div>
-
-                  {/* Chat Footer (Input) */}
-                  <div className="card-footer bg-white p-3">
-                    <div className="d-flex gap-2">
-                      <input
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter') handleSendMessage(); }}
-                        className="form-control"
-                        placeholder="Type a message..."
-                      />
-                      <button className="btn btn-danger" style={{ backgroundColor: "#711212" }} onClick={handleSendMessage}>
-                        <i className="bi bi-send-fill"></i>
-                      </button>
-                    </div>
-                  </div>
-                </div>
+              {activeChatEvent ? (
+                renderChatContent()
               ) : (
-                // Placeholder when no chat is selected
                 <div className="d-flex h-100 justify-content-center align-items-center bg-light">
                   <div className="text-center text-muted">
                     <i className="bi bi-chat-dots-fill" style={{ fontSize: '4rem' }}></i>
                     <h4 className="mt-2">Select a chat</h4>
-                    <p>Choose one of your joined events to start a conversation.</p>
+                    <p>Choose one of your joined events.</p>
                   </div>
                 </div>
               )}
             </div>
           </div>
         ) : (
-          // Mobile View List
+          /* --- MOBILE VIEW: LIST ONLY --- */
           <div className="container" style={{ paddingTop: '1rem' }}>
             <div className="row">
               <div className="col-12">
@@ -487,17 +402,10 @@ export default function Chats() {
                     {joinedEvents.map((event, i) => {
                       const data = getEventData(event);
                       return (
-                        <a
-                          key={i}
-                          className="list-group-item list-group-item-action d-flex align-items-center p-3"
-                          onClick={() => handleViewChat(event)}
-                        >
-                          <img
-                            src={data.photo ? `${import.meta.env.VITE_API_URL}/api/upload/${data.photo}` : "https://via.placeholder.com/50"}
-                            className="rounded-circle me-3 chat-avatar"
-                            alt={data.name}
-                            onError={(e) => { e.target.src = "https://via.placeholder.com/50"; }}
-                          />
+                        <a key={i} className="list-group-item list-group-item-action d-flex align-items-center p-3"
+                          onClick={() => handleViewChat(event)}>
+                          <img src={data.photo ? `${import.meta.env.VITE_API_URL}/api/upload/${data.photo}` : "https://via.placeholder.com/50"}
+                            className="rounded-circle me-3 chat-avatar" alt={data.name} onError={(e) => { e.target.src = "https://via.placeholder.com/50"; }} />
                           <div className="flex-grow-1">
                             <div className="fw-bold text-truncate">{data.name}</div>
                             <div className="text-muted text-truncate">{data.venue}</div>
@@ -515,6 +423,16 @@ export default function Chats() {
           </div>
         )}
       </div>
+
+      {/* --- MOBILE MODAL (POPUP) --- */}
+      {/* This only shows if we are on a small screen AND have an active chat */}
+      {!isLargeScreen && activeChatEvent && (
+        <div className="mobile-chat-modal">
+          <div className="mobile-chat-content animate__animated animate__fadeInUp">
+            {renderChatContent()}
+          </div>
+        </div>
+      )}
     </>
   );
 }
