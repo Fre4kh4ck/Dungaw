@@ -1,14 +1,7 @@
 /* eslint-disable no-undef */
 require('dotenv').config();
-const mariadb = require('mariadb');
+const { drizzle } = require('drizzle-orm/mysql2');
 
-const pool = mariadb.createPool({
-    host: process.env.DB_HOST,
-    port: Number(process.env.DB_PORT),
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
+const db = drizzle(process.env.DATABASE_URL);
 
-});
-
-module.exports = Object.freeze({ pool: pool });
+module.exports = Object.freeze({ db: db });
