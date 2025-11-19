@@ -65,7 +65,7 @@ export default function Scanner() {
             try {
                 const qrData = JSON.parse(decodedText);
 
-                const response = await axios.post("http://dungaw.ua:4435/verify-ticket", {
+                const response = await axios.post(`${import.meta.env.VITE_API_URL}/verify-ticket`, {
                     email: qrData.email,
                     eventId: qrData.eventId,
                     ticketId: qrData.ticketId
@@ -187,11 +187,11 @@ export default function Scanner() {
 
                         <li className="nav-item mb-2">
                             <a className="nav-link text-light px-3 py-2 d-flex align-items-center gap-2" href="/event-scanner"
-                            style={{ backgroundColor: "rgba(255,255,255,0.3)" }}>
+                                style={{ backgroundColor: "rgba(255,255,255,0.3)" }}>
                                 <i className="bi bi-qr-code-scan"></i> Scanner
                             </a>
                         </li>
-                        <li className="nav-item mb-2 justify-content-center d-flex" style={{marginTop:"20rem"}}>
+                        <li className="nav-item mb-2 justify-content-center d-flex" style={{ marginTop: "20rem" }}>
                             <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg text-center" href="/login">
                                 <i className="bi bi-box-arrow-right"></i> Log out
                             </a>

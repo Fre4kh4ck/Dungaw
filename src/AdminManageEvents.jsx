@@ -17,7 +17,7 @@ export default function AdminManageEvents() {
 
     const fetchEvents = async () => {
         try {
-            const res = await axios.get("http://dungaw.ua:4435/events");
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/events`);
             const data = Array.isArray(res.data[0]) ? res.data[0] : res.data;
             setEvents(data);
         } catch (err) {
@@ -32,7 +32,7 @@ export default function AdminManageEvents() {
     const deleteEvent = async (id) => {
         if (!window.confirm("Are you sure you want to delete this event?")) return;
         try {
-            await axios.post("http://dungaw.ua:4435/events/delete", { id });
+            await axios.post(`${import.meta.env.VITE_API_URL}/events/delete`, { id });
             alert("✅ Event deleted successfully!");
             fetchEvents();
         } catch (err) {
@@ -118,8 +118,8 @@ export default function AdminManageEvents() {
                         </a>
                     </li>
 
-                    
-                    <li className="nav-item mb-2 justify-content-center d-flex" style={{marginTop:"20rem"}} >
+
+                    <li className="nav-item mb-2 justify-content-center d-flex" style={{ marginTop: "20rem" }} >
                         <a
                             className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded text-center"
                             href="/admin"
@@ -229,7 +229,7 @@ export default function AdminManageEvents() {
                                                         <td>
                                                             {event.EventPhoto ? (
                                                                 <img
-                                                                    src={`http://dungaw.ua:4435/api/upload/${event.EventPhoto}`}
+                                                                    src={`${import.meta.env.VITE_API_URL}/api/upload/${event.EventPhoto}`}
                                                                     alt="Event"
                                                                     width="60"
                                                                     height="60"

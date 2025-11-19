@@ -90,7 +90,7 @@ const ReportStyles = () => (
             flex-direction: column;
             flex-grow: 1;
         }
-        
+
         .report-event-details h5 {
             color: #343a40;
         }
@@ -125,7 +125,7 @@ export default function AdminEventReports() {
     // Unchanged fetch logic
     const fetchEvents = async () => {
         try {
-            const res = await axios.get("http://dungaw.ua:4435/events");
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/events`);
             const rows = Array.isArray(res.data[0]) ? res.data[0] : res.data;
             setData(rows);
         } catch (err) {
@@ -136,7 +136,7 @@ export default function AdminEventReports() {
     const handleViewReport = async (event) => {
         try {
             setSelectedEvent(event);
-            const res = await axios.get(`http://dungaw.ua:4435/event/${event.EventID}/participants`);
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/event/${event.EventID}/participants`);
             setParticipants(res.data);
             setShowModal(true);
         } catch (err) {
@@ -392,7 +392,7 @@ export default function AdminEventReports() {
             await Promise.all(
                 filteredEvents.map(async (event) => {
                     try {
-                        const res = await axios.get(`http://dungaw.ua:4435/event/${event.EventID}/join-count`);
+                        const res = await axios.get(`${import.meta.env.VITE_API_URL}/event/${event.EventID}/join-count`);
                         counts[event.EventID] = res.data.total || 0;
                     } catch (err) {
                         console.error("Error fetching join count for event", event.EventID, err);
@@ -535,7 +535,7 @@ export default function AdminEventReports() {
                                             className="report-event-image"
                                             style={{
                                                 backgroundImage: `url(${event.EventPhoto
-                                                    ? `http://dungaw.ua:4435/api/upload/${event.EventPhoto}`
+                                                    ? `${import.meta.env.VITE_API_URL}/api/upload/${event.EventPhoto}`
                                                     : "/fallback.jpg"
                                                     })`
                                             }}>

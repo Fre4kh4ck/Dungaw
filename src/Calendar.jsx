@@ -22,7 +22,7 @@ const CalendarStyles = () => (
       background-color: #f8f9fa; /* A very light gray background */
       min-height: calc(100vh - 7rem);
     }
-    
+
     .page-container-large {
       margin-left: 250px; /* Pushes content right when sidebar is open */
     }
@@ -32,7 +32,7 @@ const CalendarStyles = () => (
       display: flex;
       justify-content: space-between;
       align-items: center;
-      flex-wrap: wrap; 
+      flex-wrap: wrap;
       gap: 1rem;
       padding-bottom: 1.5rem;
       margin-bottom: 1.5rem;
@@ -178,7 +178,7 @@ export default function Calendars() {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const res = await fetch("http://dungaw.ua:4435/events");
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/events`);
         const data = await res.json();
 
         const approvedEvents = data.filter(
@@ -194,7 +194,7 @@ export default function Calendars() {
             // Re-create date to strip time and avoid timezone issues
             return new Date(date.getFullYear(), date.getMonth(), date.getDate());
           };
-          
+
           return {
             ...event,
             startDate: parseDate(event.EventStartDate),
@@ -216,33 +216,33 @@ export default function Calendars() {
   // ✅ 2. NEW HELPER FUNCTIONS
   const formatDate = (date) => {
     if (!date || isNaN(date.getTime())) {
-        return "N/A";
+      return "N/A";
     }
     return date.toDateString();
   };
 
   const formatEventDateRange = (startDate, endDate) => {
     if (!startDate || isNaN(startDate.getTime())) {
-        return "N/A";
+      return "N/A";
     }
 
     const options = { month: 'short', day: 'numeric' };
 
     // 1. Check if end date exists or is same as start date
     if (!endDate || isNaN(endDate.getTime()) || startDate.toDateString() === endDate.toDateString()) {
-        return startDate.toLocaleDateString('en-US', options); // e.g., "Nov 24"
+      return startDate.toLocaleDateString('en-US', options); // e.g., "Nov 24"
     }
 
     // 3. They are different days, check for same month
     if (startDate.getMonth() === endDate.getMonth()) {
-        const startDay = startDate.getDate();
-        const endDay = endDate.getDate();
-        const month = startDate.toLocaleString('default', { month: 'short' });
-        return `${month} ${startDay}-${endDay}`; // e.g., "Nov 24-28"
+      const startDay = startDate.getDate();
+      const endDay = endDate.getDate();
+      const month = startDate.toLocaleString('default', { month: 'short' });
+      return `${month} ${startDay}-${endDay}`; // e.g., "Nov 24-28"
     } else {
-        // 4. Different months
-        // e.g., "Nov 28 - Dec 2"
-        return `${startDate.toLocaleDateString('en-US', options)} - ${endDate.toLocaleDateString('en-US', options)}`;
+      // 4. Different months
+      // e.g., "Nov 28 - Dec 2"
+      return `${startDate.toLocaleDateString('en-US', options)} - ${endDate.toLocaleDateString('en-US', options)}`;
     }
   };
 
@@ -251,8 +251,8 @@ export default function Calendars() {
   const filterEvents = (selectedDate, currentDept, allEvents) => {
     // Normalize selectedDate to ignore time
     const cleanSelectedDate = new Date(
-      selectedDate.getFullYear(), 
-      selectedDate.getMonth(), 
+      selectedDate.getFullYear(),
+      selectedDate.getMonth(),
       selectedDate.getDate()
     );
 
@@ -610,7 +610,7 @@ export default function Calendars() {
                         <div className="agenda-details">
                           <h6 className="text-truncate">{event.EventName}</h6>
                           {/* ✅ MODIFIED: Use new date range function */}
-                          <p className="text-muted small mb-0 fw-bold" style={{color: "#333 !important"}}>
+                          <p className="text-muted small mb-0 fw-bold" style={{ color: "#333 !important" }}>
                             {formatEventDateRange(event.startDate, event.endDate)}
                           </p>
                           <p className="text-muted small mb-0">{event.EventVenue}</p>

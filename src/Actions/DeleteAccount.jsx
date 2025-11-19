@@ -7,7 +7,7 @@ async function ForceDeleteUser() {
         id: id
     };
 
-    await axios.post('http://dungaw.ua:4435/accounts/delete', data);
+    await axios.post(`${import.meta.env.VITE_API_URL}/accounts/delete`, data);
 }
 
 export function SetAccountId(idXYZ) {

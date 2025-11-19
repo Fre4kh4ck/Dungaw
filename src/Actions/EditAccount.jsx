@@ -21,7 +21,7 @@ export default function EditUser() {
   async function ModifyUser() {
     if (!form.id) return;
 
-    await axios.put("http://dungaw.ua:4435/accounts/edit", {
+    await axios.put(`${import.meta.env.VITE_API_URL}/accounts/edit`, {
       username: form.username,
       password: form.password,
       id: form.id,

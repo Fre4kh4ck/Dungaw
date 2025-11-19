@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import 'bootstrap/dist/js/bootstrap.bundle.min.js'; 
+import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import Calendar from 'react-calendar';
 import "react-calendar/dist/Calendar.css"
@@ -45,7 +45,7 @@ const HomeStyles = () => (
       transform: translateY(-5px);
       box-shadow: 0 8px 20px rgba(0,0,0,0.1);
     }
-    
+
     /* --- NEW CSS FOR YOUTUBE BACKGROUNDS --- */
     .youtube-background {
       position: absolute;
@@ -244,7 +244,7 @@ export default function Home() {
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [selectedVideoId, setSelectedVideoId] = useState(null); // Stores YouTube ID
 
-  const [unreadChats, setUnreadChats] = useState([]); 
+  const [unreadChats, setUnreadChats] = useState([]);
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
 
@@ -279,7 +279,7 @@ export default function Home() {
   };
 
   const handleLogout = (e) => {
-    e.preventDefault(); 
+    e.preventDefault();
     localStorage.removeItem('user');
     localStorage.removeItem('token');
     navigate('/');
@@ -295,7 +295,7 @@ export default function Home() {
 
     return eventSource.filter((event) => {
       const startDate = event.startDate;
-      const endDate = event.endDate; 
+      const endDate = event.endDate;
 
       if (!endDate || startDate.getTime() === endDate.getTime()) {
         return startDate.getTime() === cleanSelectedDate.getTime();
@@ -309,7 +309,7 @@ export default function Home() {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const res = await axios.get("http://dungaw.ua:4435/events");
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/events`);
         const allEvents = Array.isArray(res.data[0]) ? res.data[0] : res.data;
         const approvedEvents = allEvents.filter(event => event.EventStatus === "Approved");
 
@@ -340,10 +340,10 @@ export default function Home() {
   // This useEffect now fetches the list of unread chats
   useEffect(() => {
     if (user && user.role !== 'guest') {
-      
+
       const checkNotifications = async () => {
         try {
-          const res = await axios.get(`http://dungaw.ua:4435/chats/notifications/${user.email}`);
+          const res = await axios.get(`${import.meta.env.VITE_API_URL}/chats/notifications/${user.email}`);
           setUnreadChats(res.data.unreadChats || []);
         } catch (err) {
           console.error("Failed to fetch notifications", err);
@@ -358,7 +358,7 @@ export default function Home() {
 
 
   const handleNotificationClick = (eventId) => {
-    setUnreadChats(prevChats => 
+    setUnreadChats(prevChats =>
       prevChats.filter(chat => chat.eventId !== eventId)
     );
     sessionStorage.setItem('openChatOnLoad', eventId);
@@ -375,10 +375,10 @@ export default function Home() {
   const handleMarkAllAsRead = async () => {
     if (!user || unreadChats.length === 0) return;
     try {
-      await axios.put("http://dungaw.ua:4435/chats/mark-all-read", {
+      await axios.put(`${import.meta.env.VITE_API_URL}/chats/mark-all-read`, {
         email: user.email
       });
-      setUnreadChats([]); 
+      setUnreadChats([]);
     } catch (err) {
       console.error("Failed to mark all as read", err);
     }
@@ -433,19 +433,19 @@ export default function Home() {
           <div className="d-flex align-items-center">
             {user && user.role !== 'guest' && (
               <div className="dropdown me-2">
-                <a 
-                  className="nav-link text-white notification-bell-icon" 
-                  href="#" 
-                  role="button" 
-                  data-bs-toggle="dropdown" 
+                <a
+                  className="nav-link text-white notification-bell-icon"
+                  href="#"
+                  role="button"
+                  data-bs-toggle="dropdown"
                   aria-expanded="false"
                   title="Notifications"
                 >
                   <i className="bi bi-bell-fill fs-4"></i>
                   {unreadChats.length > 0 && (
-                      <span className="position-absolute border rounded-circle notification-dot">
-                          <span className="visually-hidden">New messages</span>
-                      </span>
+                    <span className="position-absolute border rounded-circle notification-dot">
+                      <span className="visually-hidden">New messages</span>
+                    </span>
                   )}
                 </a>
 
@@ -454,7 +454,7 @@ export default function Home() {
                     <div className="notification-header">
                       <h6>Notifications</h6>
                       {unreadChats.length > 0 && (
-                        <button 
+                        <button
                           className="btn-mark-read"
                           onClick={handleMarkAllAsRead}
                         >
@@ -463,14 +463,14 @@ export default function Home() {
                       )}
                     </div>
                   </li>
-                  
+
                   <li>
                     <div className="notification-list">
                       {unreadChats.length > 0 ? (
                         unreadChats.map((chat) => (
-                          <a 
+                          <a
                             key={chat.eventId}
-                            className="dropdown-item notification-item" 
+                            className="dropdown-item notification-item"
                             href="#"
                             onClick={(e) => {
                               e.preventDefault();
@@ -481,7 +481,7 @@ export default function Home() {
                               <i className="bi bi-chat-dots-fill"></i>
                             </div>
                             <div className="notification-item-content">
-                              New message in 
+                              New message in
                               <strong className="d-block">{chat.eventName}</strong>
                             </div>
                           </a>
@@ -874,22 +874,22 @@ export default function Home() {
           <div className="modal-dialog modal-lg modal-dialog-centered">
             <div className="modal-content bg-black">
               <div className="modal-body p-0 position-relative">
-                  <button 
-                    type="button" 
-                    className="btn-close btn-close-white position-absolute top-0 end-0 m-3" 
-                    style={{ zIndex: 10 }}
-                    onClick={handleCloseVideoModal}
-                  ></button>
-                  
-                  {/* The Actual Player */}
-                  <div className="ratio ratio-16x9">
-                    <iframe
-                      src={`https://www.youtube.com/embed/${selectedVideoId}?autoplay=1&modestbranding=1&rel=0`}
-                      title="YouTube video player"
-                      allow="autoplay; encrypted-media"
-                      allowFullScreen
-                    ></iframe>
-                  </div>
+                <button
+                  type="button"
+                  className="btn-close btn-close-white position-absolute top-0 end-0 m-3"
+                  style={{ zIndex: 10 }}
+                  onClick={handleCloseVideoModal}
+                ></button>
+
+                {/* The Actual Player */}
+                <div className="ratio ratio-16x9">
+                  <iframe
+                    src={`https://www.youtube.com/embed/${selectedVideoId}?autoplay=1&modestbranding=1&rel=0`}
+                    title="YouTube video player"
+                    allow="autoplay; encrypted-media"
+                    allowFullScreen
+                  ></iframe>
+                </div>
               </div>
             </div>
           </div>

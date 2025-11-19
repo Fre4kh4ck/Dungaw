@@ -17,7 +17,7 @@ const ChatStyles = () => (
       display: flex;
       height: calc(100vh - 7rem); /* Full height minus navbar */
     }
-    
+
     .chat-list-panel {
       flex: 0 0 350px; /* Fixed width for chat list */
       border-right: 1px solid #dee2e6;
@@ -36,7 +36,7 @@ const ChatStyles = () => (
     .chat-list-body {
       overflow-y: auto;
     }
-    
+
     .chat-list-item {
       cursor: pointer;
       border-bottom: 1px solid #f0f0f0;
@@ -68,20 +68,20 @@ const ChatStyles = () => (
       max-width: 70%;
       word-wrap: break-word;
     }
-    
+
     .chat-bubble.me {
       background-color: #711212; /* Theme color */
       color: white;
       border-bottom-right-radius: 5px;
     }
-    
+
     .chat-bubble.other {
       background-color: #ffffff; /* White bubble */
       color: #333;
       border: 1px solid #e9e9e9;
       border-bottom-left-radius: 5px;
     }
-    
+
     .chat-timestamp {
       font-size: 0.75rem;
       color: #6c757d;
@@ -123,7 +123,7 @@ export default function Chats() {
   // Fetch joined events
   useEffect(() => {
     if (currentUserEmail) {
-      axios.get(`http://dungaw.ua:4435/my-chats/${currentUserEmail}`)
+      axios.get(`${import.meta.env.VITE_API_URL}/my-chats/${currentUserEmail}`)
         .then(res => {
           const events = Array.isArray(res.data[0]) ? res.data[0] : res.data;
           setJoinedEvents(events);
@@ -156,11 +156,11 @@ export default function Chats() {
     // Only run this if we are on a large screen AND the event list has loaded
     if (isLargeScreen && joinedEvents.length > 0) {
       const eventIdToOpen = sessionStorage.getItem('openChatOnLoad');
-      
+
       if (eventIdToOpen) {
         // Find the event in our list
         const eventToOpen = joinedEvents.find(e => e.EventID === parseInt(eventIdToOpen));
-        
+
         if (eventToOpen) {
           // If we found it, open it
           handleViewChat(eventToOpen);
@@ -173,11 +173,11 @@ export default function Chats() {
       }
     }
     // We depend on joinedEvents to make sure the list is ready to be searched
-  }, [joinedEvents, isLargeScreen]); 
+  }, [joinedEvents, isLargeScreen]);
 
   const fetchMessages = async (eventId) => {
     try {
-      const res = await axios.get(`http://dungaw.ua:4435/chatroom/${eventId}`);
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/chatroom/${eventId}`);
       setMessages(res.data || []);
     } catch (err) {
       console.error("Error fetching messages:", err);
@@ -187,7 +187,7 @@ export default function Chats() {
   // 🔴 This function now marks chats as read
   const handleViewChat = (event) => {
     const markAsRead = () => {
-      axios.put(`http://dungaw.ua:4435/chats/mark-read`, {
+      axios.put(`${import.meta.env.VITE_API_URL}/chats/mark-read`, {
         email: currentUserEmail,
         eventId: event.EventID
       }).catch(err => console.error("Failed to mark as read", err));
@@ -205,7 +205,7 @@ export default function Chats() {
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !activeChatEvent) return;
     try {
-      await axios.post(`http://dungaw.ua:4435/chatroom/${activeChatEvent.EventID}`, {
+      await axios.post(`${import.meta.env.VITE_API_URL}/chatroom/${activeChatEvent.EventID}`, {
         user_email: currentUserEmail,
         message_content: newMessage.trim()
       });
@@ -225,7 +225,7 @@ export default function Chats() {
   return (
     <>
       <ChatStyles />
-      
+
       {/* Navbar */}
       <div className='container-fluid p-0'>
         <nav
@@ -290,9 +290,9 @@ export default function Chats() {
               </a>
             </li>
             <li className="nav-item mb-2 justify-content-center d-flex">
-              <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg text-center" 
-                 href="/login" 
-                 onClick={handleLogout}>
+              <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg text-center"
+                href="/login"
+                onClick={handleLogout}>
                 <i className="bi bi-box-arrow-right"></i> Log out
               </a>
             </li>
@@ -315,7 +315,7 @@ export default function Chats() {
       </div>
 
       {/* --- NEW CHAT LAYOUT --- */}
-      <div 
+      <div
         style={{
           marginLeft: isLargeScreen ? '250px' : '0',
           marginTop: '7rem',
@@ -333,16 +333,16 @@ export default function Chats() {
                 {joinedEvents.length > 0 ? (
                   <div className="list-group list-group-flush">
                     {joinedEvents.map((event, i) => (
-                      <a 
+                      <a
                         key={i}
                         className={`list-group-item list-group-item-action chat-list-item ${activeChatEvent?.EventID === event.EventID ? 'active' : ''}`}
                         onClick={() => handleViewChat(event)}
                       >
                         <div className="d-flex align-items-center">
-                          <img 
-                            src={`http://dungaw.ua:4435/api/upload/${event.EventPhoto}`} 
-                            className="rounded-circle me-3 chat-avatar" 
-                            alt={event.EventName} 
+                          <img
+                            src={`${import.meta.env.VITE_API_URL}/api/upload/${event.EventPhoto}`}
+                            className="rounded-circle me-3 chat-avatar"
+                            alt={event.EventName}
                           />
                           <div className="flex-grow-1">
                             <div className="fw-bold text-truncate">{event.EventName}</div>
@@ -365,10 +365,10 @@ export default function Chats() {
                   {/* Chat Header */}
                   <div className="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
                     <div className="d-flex align-items-center">
-                      <img 
-                        src={`http://dungaw.ua:4435/api/upload/${activeChatEvent.EventPhoto}`} 
-                        className="rounded-circle me-3 chat-avatar" 
-                        alt={activeChatEvent.EventName} 
+                      <img
+                        src={`${import.meta.env.VITE_API_URL}/api/upload/${activeChatEvent.EventPhoto}`}
+                        className="rounded-circle me-3 chat-avatar"
+                        alt={activeChatEvent.EventName}
                       />
                       <div>
                         <h5 className="fw-bold mb-0">{activeChatEvent.EventName}</h5>
@@ -379,7 +379,7 @@ export default function Chats() {
                       <i className="bi bi-x-lg"></i>
                     </button>
                   </div>
-                  
+
                   {/* Message Body */}
                   <div className="card-body chat-window-body overflow-auto p-3">
                     {messages.length === 0 ? (
@@ -388,8 +388,8 @@ export default function Chats() {
                       messages.map((m, idx) => {
                         const isMe = m.user_email === currentUserEmail;
                         return (
-                          <div 
-                            key={idx} 
+                          <div
+                            key={idx}
                             className={`d-flex mb-3 ${isMe ? 'justify-content-end' : 'justify-content-start'}`}
                           >
                             <div style={{ maxWidth: '70%' }}>
@@ -409,7 +409,7 @@ export default function Chats() {
                     )}
                     <div ref={messagesEndRef} />
                   </div>
-                  
+
                   {/* Chat Footer (Input) */}
                   <div className="card-footer bg-white p-3">
                     <div className="d-flex gap-2">
@@ -420,7 +420,7 @@ export default function Chats() {
                         className="form-control"
                         placeholder="Type a message..."
                       />
-                      <button className="btn btn-danger" style={{backgroundColor: "#711212"}} onClick={handleSendMessage}>
+                      <button className="btn btn-danger" style={{ backgroundColor: "#711212" }} onClick={handleSendMessage}>
                         <i className="bi bi-send-fill"></i>
                       </button>
                     </div>
@@ -447,15 +447,15 @@ export default function Chats() {
                 {joinedEvents.length > 0 ? (
                   <div className="list-group">
                     {joinedEvents.map((event, i) => (
-                      <a 
+                      <a
                         key={i}
                         className="list-group-item list-group-item-action d-flex align-items-center p-3"
                         onClick={() => handleViewChat(event)}
                       >
-                        <img 
-                          src={`http://dungaw.ua:4435/api/upload/${event.EventPhoto}`} 
-                          className="rounded-circle me-3 chat-avatar" 
-                          alt={event.EventName} 
+                        <img
+                          src={`${import.meta.env.VITE_API_URL}/api/upload/${event.EventPhoto}`}
+                          className="rounded-circle me-3 chat-avatar"
+                          alt={event.EventName}
                         />
                         <div className="flex-grow-1">
                           <div className="fw-bold text-truncate">{event.EventName}</div>

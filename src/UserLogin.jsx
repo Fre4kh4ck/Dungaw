@@ -20,7 +20,7 @@ export default function UserLogin() {
                 return;
             }
 
-            const res = await fetch("http://dungaw.ua:4435/google-login", {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/google-login`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ idToken }),
@@ -36,11 +36,11 @@ export default function UserLogin() {
 
             // 1. Save Token for verified users
             localStorage.setItem("token", data.token);
-            
+
             // 2. Save User Data (Ensure they have a role, default to student)
             const userToSave = { ...data.user, role: data.user.role || 'student' };
             localStorage.setItem("user", JSON.stringify(userToSave));
-            
+
             navigate("/home");
         } catch (err) {
             console.error("Google Login Error:", err);
@@ -52,18 +52,18 @@ export default function UserLogin() {
     const handleGuestLogin = () => {
         // A. Clear any old data so they don't get mixed up
         localStorage.removeItem("token");
-        
+
         // B. Create a "Guest" identity
         const guestUser = {
             name: "Guest Visitor",
             role: "guest" // 🔒 This is the security key
         };
-        
+
         // C. Save it
         localStorage.setItem("user", JSON.stringify(guestUser));
 
         // D. Send them to Home
-        navigate('/home'); 
+        navigate('/home');
     };
 
     useEffect(() => {
@@ -123,8 +123,8 @@ export default function UserLogin() {
                             position: 'absolute',
                             top: '-10px',
                             left: '-10px',
-                            width: 'calc(100% + 20px)',   
-                            height: 'calc(100% + 20px)', 
+                            width: 'calc(100% + 20px)',
+                            height: 'calc(100% + 20px)',
                             zIndex: 0
                         }}
                     ></div>

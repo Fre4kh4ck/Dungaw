@@ -56,7 +56,7 @@ export default function Accounts() {
 
 
   useEffect(() => {
-    axios.get('http://dungaw.ua:4435/accounts/order/id')
+    axios.get(`${import.meta.env.VITE_API_URL}/accounts/order/id`)
       .then((res) => {
         console.log('Fetched data:', res.data);
         const data = Array.isArray(res.data) ? res.data : [res.data];

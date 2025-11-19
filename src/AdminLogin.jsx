@@ -21,7 +21,7 @@ export default function AdminLogin() {
     }
 
     try {
-      const res = await fetch('http://dungaw.ua:4435/auth/login', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -31,7 +31,7 @@ export default function AdminLogin() {
       console.log('🧾 Backend response:', data);
 
       if (!res.ok) {
-       
+
         alert(data.message || 'Login failed');
         return;
       }

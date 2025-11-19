@@ -30,7 +30,7 @@ export default function AdminHome() {
         const statuses = ["Submitted", "Approved", "Denied"];
         for (const status of statuses) {
             try {
-                const { data } = await axios.get(`http://dungaw.ua:4435/events/status/${status}`);
+                const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/events/status/${status}`);
                 if (status === "Submitted") setSubmittedEvents(data);
                 else if (status === "Approved") setApprovedEvents(data);
                 else setDeniedEvents(data);
@@ -75,7 +75,7 @@ export default function AdminHome() {
                     <div key={event.EventID} className="col-md-4 mb-4">
                         <div className="card shadow-sm">
                             <img
-                                src={`http://dungaw.ua:4435/api/upload/${event.EventPhoto}`}
+                                src={`${import.meta.env.VITE_API_URL}/api/upload/${event.EventPhoto}`}
                                 alt="Event"
                                 className="card-img-top"
                                 style={{ height: "200px", objectFit: "cover" }}
@@ -133,7 +133,7 @@ export default function AdminHome() {
         formData.append("dept", e.target.dept.value);
 
         try {
-            await axios.post("http://dungaw.ua:4435/events/add", formData, {
+            await axios.post(`${import.meta.env.VITE_API_URL}/events/add`, formData, {
                 headers: { "Content-Type": "multipart/form-data" },
             });
             alert("✅ Event added successfully!");

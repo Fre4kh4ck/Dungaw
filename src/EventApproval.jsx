@@ -3,7 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
-import { Modal, Button, Form } from "react-bootstrap"; 
+import { Modal, Button, Form } from "react-bootstrap";
 
 import UALOGO from "./assets/Ualogo.png";
 import FBLOGO from "./assets/fblogo.png";
@@ -27,7 +27,7 @@ export default function EventApproval() {
     // 🔹 Fetch by status
     const fetchEventsByStatus = async (status, setState) => {
         try {
-            const res = await axios.get(`http://dungaw.ua:4435/events/status/${status}`);
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/events/status/${status}`);
             const data = Array.isArray(res.data[0]) ? res.data[0] : res.data;
             setState(data);
         } catch (err) {
@@ -49,7 +49,7 @@ export default function EventApproval() {
     const approveEvent = async (id) => {
         if (!window.confirm("Approve this event?")) return;
         try {
-            await axios.put("http://dungaw.ua:4435/events/status/update", {
+            await axios.put(`${import.meta.env.VITE_API_URL}/events/status/update`, {
                 id,
                 status: "Approved",
                 reason: null // Send null for the reason
@@ -82,7 +82,7 @@ export default function EventApproval() {
         }
 
         try {
-            await axios.put("http://dungaw.ua:4435/events/status/update", {
+            await axios.put(`${import.meta.env.VITE_API_URL}/events/status/update`, {
                 id: selectedEventId, // Use the ID from state
                 status: "Denied",
                 reason: denialReason, // Pass the reason from state
@@ -118,7 +118,7 @@ export default function EventApproval() {
                         <th>Department</th>
                         <th>Photo</th>
                         {/* 🔴 NEW: Added Reason Header */}
-                        <th>Reason</th> 
+                        <th>Reason</th>
                         {status === "Submitted" ? <th>Actions</th> : <th>Status</th>}
                     </tr>
                 </thead>
@@ -135,7 +135,7 @@ export default function EventApproval() {
                                 <td>
                                     {event.EventPhoto ? (
                                         <img
-                                            src={`http://dungaw.ua:4435/api/upload/${event.EventPhoto}`}
+                                            src={`${import.meta.env.VITE_API_URL}/api/upload/${event.EventPhoto}`}
                                             alt="Event"
                                             width="60"
                                             height="60"
@@ -149,7 +149,7 @@ export default function EventApproval() {
                                         <span className="text-muted">No Image</span>
                                     )}
                                 </td>
-                                
+
                                 {/* 🔴 NEW: Added Reason Cell */}
                                 <td style={{ minWidth: "150px", maxWidth: "300px", whiteSpace: "normal", fontSize: "0.9rem" }}>
                                     {event.EventDenialReason || <span className="text-muted">---</span>}

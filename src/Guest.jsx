@@ -33,7 +33,7 @@ const HomeStyles = () => (
       background-color: #f8f9fa; /* A very light gray background */
       min-height: calc(100vh - 7rem);
     }
-    
+
     .page-container-large {
       margin-left: 250px; /* Pushes content right when sidebar is open */
     }
@@ -167,7 +167,7 @@ export default function Home() {
   }, []);
 
   // ✅ REMOVED: useEffect for loading user
-  
+
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
@@ -200,11 +200,11 @@ export default function Home() {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const res = await axios.get("http://dungaw.ua:4435/events");
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/events`);
         const allEvents = Array.isArray(res.data[0]) ? res.data[0] : res.data;
-        
+
         const approvedEvents = allEvents.filter(event => event.EventStatus === "Approved");
-        
+
         // Parse EventStartDate and EventEndDate
         const formatted = approvedEvents.map((event) => {
           // Helper to parse dates correctly (ignoring time)
@@ -214,7 +214,7 @@ export default function Home() {
             // Re-create date to strip time and avoid timezone issues
             return new Date(date.getFullYear(), date.getMonth(), date.getDate());
           };
-          
+
           return {
             ...event,
             startDate: parseDate(event.EventStartDate),
@@ -249,7 +249,7 @@ export default function Home() {
     setSelectedVideo(null);
     setShowVideoModal(false);
   };
-  
+
   // --- END NEW HANDLERS ---
 
   // (MODIFIED) Added CIT
@@ -351,7 +351,7 @@ export default function Home() {
       </div>
 
       {/* ===== ✅ NEW MAIN CONTENT WRAPPER ===== */}
-      <div 
+      <div
         className={`page-container ${isLargeScreen ? 'page-container-large' : ''}`}
       >
         <div className="container-fluid px-lg-4">
@@ -388,30 +388,30 @@ export default function Home() {
               {/* --- Redesigned "Discover Courses" Section --- */}
               <h2 className="fw-bold mb-3" style={{ color: "#711212" }}>Discover Departments</h2>
               <div className="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
-                
+
                 {/* Card 1: CCIS */}
                 <div className="col">
                   <div className="card course-card">
-                    <video 
-                      src={CCSVID} 
-                      className="course-card-video" 
-                      autoPlay 
-                      loop 
-                      muted 
+                    <video
+                      src={CCSVID}
+                      className="course-card-video"
+                      autoPlay
+                      loop
+                      muted
                       playsInline
                     ></video>
                     <div className="course-card-overlay">
                       <img src={CCSLOGO} alt="CCIS" className="course-card-logo" />
                       <h4 className="fw-bold">CCIS</h4>
                       <div className="d-flex gap-2 mt-2">
-                        <button 
-                          className="btn btn-outline-light btn-sm" 
-                          data-bs-toggle="modal" 
+                        <button
+                          className="btn btn-outline-light btn-sm"
+                          data-bs-toggle="modal"
                           data-bs-target="#modalCCIS"
                         >
                           View Details
                         </button>
-                        <button 
+                        <button
                           className="btn btn-light btn-sm d-flex align-items-center gap-1"
                           onClick={() => handlePlayVideo(CCSVID)}
                         >
@@ -425,26 +425,26 @@ export default function Home() {
                 {/* Card 2: CBA */}
                 <div className="col">
                   <div className="card course-card">
-                    <video 
-                      src={HMVID} 
-                      className="course-card-video" 
-                      autoPlay 
-                      loop 
-                      muted 
+                    <video
+                      src={HMVID}
+                      className="course-card-video"
+                      autoPlay
+                      loop
+                      muted
                       playsInline
                     ></video>
                     <div className="course-card-overlay">
                       <img src={CBALOGO} alt="CBA" className="course-card-logo" />
                       <h4 className="fw-bold">CBA</h4>
                       <div className="d-flex gap-2 mt-2">
-                        <button 
-                          className="btn btn-outline-light btn-sm" 
-                          data-bs-toggle="modal" 
+                        <button
+                          className="btn btn-outline-light btn-sm"
+                          data-bs-toggle="modal"
                           data-bs-target="#modalCBA"
                         >
                           View Details
                         </button>
-                        <button 
+                        <button
                           className="btn btn-light btn-sm d-flex align-items-center gap-1"
                           onClick={() => handlePlayVideo(HMVID)}
                         >
@@ -458,26 +458,26 @@ export default function Home() {
                 {/* Card 3: CMS */}
                 <div className="col">
                   <div className="card course-card">
-                    <video 
-                      src={CMSMP4} 
-                      className="course-card-video" 
-                      autoPlay 
-                      loop 
-                      muted 
+                    <video
+                      src={CMSMP4}
+                      className="course-card-video"
+                      autoPlay
+                      loop
+                      muted
                       playsInline
                     ></video>
                     <div className="course-card-overlay">
                       <img src={CMSLOGO} alt="CMS" className="course-card-logo" />
                       <h4 className="fw-bold">CMS</h4>
                       <div className="d-flex gap-2 mt-2">
-                        <button 
-                          className="btn btn-outline-light btn-sm" 
-                          data-bs-toggle="modal" 
+                        <button
+                          className="btn btn-outline-light btn-sm"
+                          data-bs-toggle="modal"
                           data-bs-target="#modalCMS"
                         >
                           View Details
                         </button>
-                        <button 
+                        <button
                           className="btn btn-light btn-sm d-flex align-items-center gap-1"
                           onClick={() => handlePlayVideo(CMSMP4)}
                         >
@@ -506,11 +506,11 @@ export default function Home() {
                     tileContent={({ date, view }) => {
                       if (view !== 'month') return null;
                       // ✅ THIS LOGIC IS NOW CORRECT
-                      const eventsForDay = getEventsForDate(date, data); 
+                      const eventsForDay = getEventsForDate(date, data);
                       if (eventsForDay.length > 0) {
                         return (
-                          <div 
-                            className="event-dot" 
+                          <div
+                            className="event-dot"
                             style={{ backgroundColor: deptColors[eventsForDay[0].EventDept] || '#bbb' }}
                           ></div>
                         );
@@ -562,9 +562,9 @@ export default function Home() {
 
         </div>
       </div>
-      
+
       {/* ===== PROFESSIONAL FOOTER (Unchanged) ===== */}
-      <footer 
+      <footer
         className="footer-main"
         style={{
           marginLeft: isLargeScreen ? "250px" : "0",
@@ -575,13 +575,13 @@ export default function Home() {
           <div className="row g-4">
             <div className="col-md-5">
               <div className="d-flex align-items-center mb-2">
-                <img src={UALOGO} alt="UA Logo" style={{width: "40px"}} className="me-2" />
+                <img src={UALOGO} alt="UA Logo" style={{ width: "40px" }} className="me-2" />
                 <h5 className="fw-bold mb-0">University of Antique</h5>
               </div>
-              <p className="small" style={{color: "#f0f0f0"}}>
+              <p className="small" style={{ color: "#f0f0f0" }}>
                 Sibalom Main Campus, Sibalom, Antique
               </p>
-              <p className="small" style={{color: "#f0f0f0"}}>
+              <p className="small" style={{ color: "#f0f0f0" }}>
                 © 2025 University of Antique. All Rights Reserved.
               </p>
             </div>
@@ -605,7 +605,7 @@ export default function Home() {
           </div>
         </div>
       </footer>
-      <div 
+      <div
         className="footer-copyright"
         style={{
           marginLeft: isLargeScreen ? "250px" : "0",
@@ -618,23 +618,23 @@ export default function Home() {
 
       {/* --- NEW VIDEO MODAL --- */}
       {showVideoModal && (
-        <div 
-          className="modal fade show" 
-          style={{ 
-            display: 'block', 
-            backgroundColor: 'rgba(0,0,0,0.8)', 
-            backdropFilter: 'blur(5px)' 
+        <div
+          className="modal fade show"
+          style={{
+            display: 'block',
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            backdropFilter: 'blur(5px)'
           }}
           onClick={handleCloseVideoModal} // Close on backdrop click
         >
           <div className="modal-dialog modal-lg modal-dialog-centered">
             <div className="modal-content bg-transparent border-0">
               <div className="modal-header border-0 pb-0">
-                <button 
-                  type="button" 
-                  className="btn-close btn-close-white" 
+                <button
+                  type="button"
+                  className="btn-close btn-close-white"
                   onClick={handleCloseVideoModal}
-                  style={{fontSize: '1.2rem'}}
+                  style={{ fontSize: '1.2rem' }}
                 ></button>
               </div>
               <div className="modal-body p-0">
@@ -655,10 +655,10 @@ export default function Home() {
       <div className="modal fade" id="modalCCIS" tabIndex="-1" aria-hidden="true">
         <div className="modal-dialog modal-lg modal-dialog-centered">
           <div className="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-            
+
             <div className="modal-header text-white" style={{ backgroundColor: "#711212" }}>
               <div className="d-flex align-items-center gap-3">
-                <img src={CCSLOGO} alt="CCIS" style={{width: '40px', height: '40px'}} />
+                <img src={CCSLOGO} alt="CCIS" style={{ width: '40px', height: '40px' }} />
                 <h5 className="modal-title fw-bold mb-0">
                   College of Computing and Information Science
                 </h5>
@@ -677,7 +677,7 @@ export default function Home() {
                 we prepare you to lead the digital age.
               </p>
               <blockquote className="blockquote border-start border-5 border-danger ps-3 my-4">
-                <p className="mb-0 fst-italic fs-5" style={{color: "#555"}}>"Think smart. Code bold. Innovate without limits."</p>
+                <p className="mb-0 fst-italic fs-5" style={{ color: "#555" }}>"Think smart. Code bold. Innovate without limits."</p>
               </blockquote>
               <div className="text-end mt-4">
                 <span className="fw-bold" style={{ color: "#7a1113", fontSize: "1.05rem" }}>
@@ -685,7 +685,7 @@ export default function Home() {
                 </span>
               </div>
             </div>
-            
+
             <div className="modal-footer bg-light border-top">
               <button type="button" className="btn btn-outline-danger px-4 fw-semibold" data-bs-dismiss="modal">
                 Close
@@ -699,10 +699,10 @@ export default function Home() {
       <div className="modal fade" id="modalCBA" tabIndex="-1" aria-hidden="true">
         <div className="modal-dialog modal-lg modal-dialog-centered">
           <div className="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-            
+
             <div className="modal-header text-white" style={{ backgroundColor: "#711212" }}>
               <div className="d-flex align-items-center gap-3">
-                <img src={CBALOGO} alt="CBA" style={{width: '40px', height: '40px'}} />
+                <img src={CBALOGO} alt="CBA" style={{ width: '40px', height: '40px' }} />
                 <h5 className="modal-title fw-bold mb-0">
                   College of Business and Accountancy
                 </h5>
@@ -722,7 +722,7 @@ export default function Home() {
                 we turn your talent for service into a global opportunity.
               </p>
               <blockquote className="blockquote border-start border-5 border-danger ps-3 my-4">
-                <p className="mb-0 fst-italic fs-5" style={{color: "#555"}}>"Serve with heart. Lead with excellence. Shine in hospitality."</p>
+                <p className="mb-0 fst-italic fs-5" style={{ color: "#555" }}>"Serve with heart. Lead with excellence. Shine in hospitality."</p>
               </blockquote>
               <div className="text-end mt-4">
                 <span className="fw-bold" style={{ color: "#7a1113", fontSize: "1.05rem" }}>
@@ -730,7 +730,7 @@ export default function Home() {
                 </span>
               </div>
             </div>
-            
+
             <div className="modal-footer bg-light border-top">
               <button type="button" className="btn btn-outline-danger px-4 fw-semibold" data-bs-dismiss="modal">
                 Close
@@ -744,10 +744,10 @@ export default function Home() {
       <div className="modal fade" id="modalCMS" tabIndex="-1" aria-hidden="true">
         <div className="modal-dialog modal-lg modal-dialog-centered">
           <div className="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-            
+
             <div className="modal-header text-white" style={{ backgroundColor: "#711212" }}>
               <div className="d-flex align-items-center gap-3">
-                <img src={CMSLOGO} alt="CMS" style={{width: '40px', height: '40px'}} />
+                <img src={CMSLOGO} alt="CMS" style={{ width: '40px', height: '40px' }} />
                 <h5 className="modal-title fw-bold mb-0">
                   College of Maritime Studies
                 </h5>
@@ -767,7 +767,7 @@ export default function Home() {
                 or keeping their powerful engines alive, your journey starts here.
               </p>
               <blockquote className="blockquote border-start border-5 border-danger ps-3 my-4">
-                <p className="mb-0 fst-italic fs-5" style={{color: "#555"}}>"Be bold. Be disciplined. Be a mariner."</p>
+                <p className="mb-0 fst-italic fs-5" style={{ color: "#555" }}>"Be bold. Be disciplined. Be a mariner."</p>
               </blockquote>
               <div className="text-end mt-4">
                 <span className="fw-bold" style={{ color: "#7a1113", fontSize: "1.05rem" }}>
@@ -775,7 +775,7 @@ export default function Home() {
                 </span>
               </div>
             </div>
-            
+
             <div className="modal-footer bg-light border-top">
               <button type="button" className="btn btn-outline-danger px-4 fw-semibold" data-bs-dismiss="modal">
                 Close

@@ -15,7 +15,7 @@ async function CreateUser(a, b, c, d) {
     };
 
     try {
-        await axios.post('http://dungaw.ua:4435/accounts/post', data);
+        await axios.post(`${import.meta.env.VITE_API_URL}/accounts/post`, data);
         console.log("User created:", data);
     } catch (err) {
         console.error("Error creating user:", err);
@@ -44,7 +44,7 @@ export default function AddUser() {
                                     <li onClick={() => document.getElementById('addRole').value = 'Co-Admin'}><a href="#" className="dropdown-item">co-admin</a></li>
                                 </ul>
                             </div>
-                        </div>  
+                        </div>
 
                         <div className="mb-3">
                             <label htmlFor="addName" className="form-label">Department</label>
@@ -62,18 +62,18 @@ export default function AddUser() {
 
                     <div className="modal-footer">
                         <button className="btn btn-secondary" data-bs-dismiss='modal'>Cancel</button>
-                        <button 
-                          id='confirmAddUser' 
-                          className="btn btn-primary"
-                          data-bs-dismiss='modal' 
-                          onClick={() => CreateUser(
-                              document.getElementById('addName').value,
-                              document.getElementById('addUsername').value,
-                              document.getElementById('addPassword').value,
-                              document.getElementById('addRole').value
-                          )}
+                        <button
+                            id='confirmAddUser'
+                            className="btn btn-primary"
+                            data-bs-dismiss='modal'
+                            onClick={() => CreateUser(
+                                document.getElementById('addName').value,
+                                document.getElementById('addUsername').value,
+                                document.getElementById('addPassword').value,
+                                document.getElementById('addRole').value
+                            )}
                         >
-                          Done
+                            Done
                         </button>
                     </div>
                 </div>

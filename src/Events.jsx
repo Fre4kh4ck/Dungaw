@@ -73,7 +73,7 @@ export default function Events() {
             // 3. Generate QR code
             // 4. Send email with QR code
             // 5. Return QR code to display here
-            const response = await axios.post("http://dungaw.ua:4435/join-event", {
+            const response = await axios.post(`${import.meta.env.VITE_API_URL}/join-event`, {
                 email: userEmail,
                 eventId: eventToJoin.EventID,
                 eventName: eventToJoin.EventName // Pass eventName for the email
@@ -182,7 +182,7 @@ export default function Events() {
     };
 
     const FetchEvents = async () => {
-        const res = await axios.get("http://dungaw.ua:4435/events");
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/events`);
         sendData(res.data);
     }
 
@@ -437,7 +437,7 @@ export default function Events() {
                                         <img
                                             src={
                                                 filteredEvents[index].EventPhoto
-                                                    ? `http://dungaw.ua:4435/api/upload/${filteredEvents[index].EventPhoto}`
+                                                    ? `${import.meta.env.VITE_API_URL}/api/upload/${filteredEvents[index].EventPhoto}`
                                                     : "/fallback.jpg"
                                             }
                                             className="card-img-top rounded-top-4"
@@ -518,7 +518,7 @@ export default function Events() {
                                     <img
                                         src={
                                             selectedEvent.EventPhoto
-                                                ? `http://dungaw.ua:4435/api/upload/${selectedEvent.EventPhoto}`
+                                                ? `${import.meta.env.VITE_API_URL}/api/upload/${selectedEvent.EventPhoto}`
                                                 : "/fallback.jpg"
                                         }
                                         alt={selectedEvent.EventName}
