@@ -1,3 +1,4 @@
+
 /* eslint-env node */
 import 'dotenv/config';
 import express from 'express';
@@ -331,12 +332,9 @@ server.get("/chatroom/:id", async (req, res) => {
 });
 
 
-
-// 🌟 --- REPLACE your /join-event endpoint with this updated version --- 🌟
-// 🌟 --- REPLACE your /join-event endpoint with this updated version --- 🌟
 server.post("/join-event", async (req, res) => {
-  // 1. ACCEPT eventDate from the frontend request
-  const { email, eventId, eventName, eventDate } = req.body;
+  // 1. ACCEPT eventVenue from the frontend request
+  const { email, eventId, eventName, eventDate, eventVenue } = req.body;
 
   if (!email || !eventId || !eventName) {
     return res.status(400).json({ success: false, message: "Missing email, eventId, or eventName" });
@@ -352,6 +350,8 @@ server.post("/join-event", async (req, res) => {
 
     // 2. Generate unique ticket ID and QR Code
     const ticket_id = uuidv4();
+
+    // This data is what gets read when the Admin scans the QR code
     const qrData = JSON.stringify({
       email: email,
       eventId: eventId,
@@ -364,33 +364,43 @@ server.post("/join-event", async (req, res) => {
     await db.insert(joined_events).values({
       user_email: email,
       event_id: eventId,
-      ticket_id
+      ticket_id,
+      joined_at: new Date() // Ensure joined_at is recorded
     });
 
     // 4. PREPARE EMAIL ATTACHMENT
     const base64Data = qrCodeDataURL.split(",")[1];
 
-    // Format date for email (optional, makes it look nicer if eventDate exists)
+    // Format date for email
     const dateDisplay = eventDate ? new Date(eventDate).toDateString() : "Date TBA";
+    const venueDisplay = eventVenue || "Campus Venue";
 
     try {
       const msg = {
         to: email,
-        from: 'jmmvenegas@antiquespride.edu.ph',
-        subject: `Your Ticket for ${eventName}`,
+        from: 'jmmvenegas@antiquespride.edu.ph', // Your verified sender
+        subject: `Ticket: ${eventName}`,
         html: `
-              <div style="font-family: Arial, sans-serif; text-align: center; padding: 20px;">
-                  <h2 style="color: #711212;">You're In!</h2>
-                  <p>You have successfully joined the event: <strong>${eventName}</strong>.</p>
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 10px;">
+                  <h2 style="color: #711212; text-align: center;">Event Registration Confirmed!</h2>
+                  <p>Hello,</p>
+                  <p>You have successfully joined <strong>${eventName}</strong>.</p>
                   
-                  <p style="font-size: 1.1em;"><strong>Date:</strong> ${dateDisplay}</p> 
+                  <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                    <p style="margin: 5px 0;"><strong>📅 Date:</strong> ${dateDisplay}</p> 
+                    <p style="margin: 5px 0;"><strong>📍 Venue:</strong> ${venueDisplay}</p>
+                  </div>
                   
-                  <p>Please present this unique QR code to the event admin for scanning.</p>
-
-                  <img src="cid:eventqrcode" alt="Your Event QR Code" style="width: 250px; height: 250px; margin-top: 20px;" />
-
-                  <p style="margin-top: 30px; font-size: 0.9em; color: #777;">
-                      University of Antique Event Management
+                  <hr>
+                  <div style="text-align: center; margin: 20px 0;">
+                      <p><strong>Show this QR code at the entrance:</strong></p>
+                      <img src="cid:eventqrcode" alt="Your Event QR Code" style="width: 200px; height: 200px;" />
+                  </div>
+                  <hr>
+                  
+                  <p style="text-align: center; font-size: 12px; color: #888;">
+                      University of Antique Event Management<br>
+                      Sibalom Main Campus
                   </p>
               </div>
         `,
@@ -400,21 +410,25 @@ server.post("/join-event", async (req, res) => {
             filename: 'qrcode.png',
             type: 'image/png',
             disposition: 'inline',
-            content_id: 'eventqrcode'
+            content_id: 'eventqrcode' // This ID links the image in HTML to this attachment
           }
         ]
       };
+
       await sgMail.send(msg);
 
     } catch (emailError) {
       console.error("Email failed to send:", emailError.response?.body || emailError);
+      // We don't return an error here because the DB insert was successful.
+      // The user can still access the ticket via the web app.
     }
 
     // 5. Send success response back to frontend
+    // This matches the frontend: const { qrCodeDataURL } = response.data;
     res.json({
       success: true,
-      message: "Event added to chat list!",
-      qrCodeDataURL: qrCodeDataURL // This allows the frontend modal to show the QR code immediately
+      message: "Joined successfully",
+      qrCodeDataURL: qrCodeDataURL
     });
 
   } catch (err) {
@@ -422,40 +436,6 @@ server.post("/join-event", async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
-
-
-server.post("/send-join-email", async (req, res) => {
-  const { email, eventName } = req.body;
-
-  if (!email || !eventName) {
-    return res.status(400).json({ success: false, message: "Email or eventName missing" });
-  }
-
-  try {
-    const msg = {
-      to: email, // Recipient
-      from: {
-        email: 'jmmvenegas@antiquespride.edu.ph', // Must match verified sender
-        name: 'Joshua Miguel Venegas',
-      },
-      subject: `Event Confirmation: ${eventName}`,
-      text: `You have successfully joined the event "${eventName}". See you there!`,
-      html: `<p>🎉 You have successfully joined the event <b>${eventName}</b>.<br/>See you there!</p>`,
-    };
-
-    await sgMail.send(msg);
-
-    res.json({ success: true, message: "Email sent successfully!" });
-  } catch (error) {
-    console.error("Error sending join email:", error.response ? error.response.body : error);
-    res.status(500).json({
-      success: false,
-      message: "Email sending failed.",
-      error: error.response ? error.response.body : error.message
-    });
-  }
-});
-
 
 server.post("/events/delete", async (req, res) => {
   try {
