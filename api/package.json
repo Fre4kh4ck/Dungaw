@@ -4,10 +4,13 @@
   "type": "module",
   "main": "server.js",
   "scripts": {
-    "start": "bun server.js",
+    "dev": "bun server.js",
+    "build": "bun build server.js --target node --outdir dist",
+    "start": "node dist/server.js",
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@sendgrid/mail": "^8.1.3",

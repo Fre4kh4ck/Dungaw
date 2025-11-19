@@ -4,10 +4,12 @@
   "version": "0.0.0",
   "scripts": {
     "dev": "vite",
-    "dev:server": "bun api/server.js",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "lint:fix": "eslint . --fix",
+    "preview": "vite preview",
+    "start": "vite preview",
+    "clean": "rm -rf dist"
   },
   "dependencies": {
     "@sendgrid/mail": "^8.1.6",
