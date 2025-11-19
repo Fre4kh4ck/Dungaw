@@ -1,6 +1,8 @@
-require('dotenv').config();
-
+/* eslint-env node */
 import { defineConfig } from 'drizzle-kit';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 export default defineConfig({
   schema: './drizzle-schema.js',

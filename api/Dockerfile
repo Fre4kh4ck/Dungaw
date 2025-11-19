@@ -3,8 +3,8 @@ FROM oven/bun:latest
 # Set working directory
 WORKDIR /app
 
-# Copy package.json and bun.lockb (if exists)
-COPY api/package.json api/bun.lockb* ./
+# Copy package.json and lockfile
+COPY api/package.json api/pnpm-lock.yaml ./
 
 # Install dependencies
 RUN bun install
@@ -12,8 +12,11 @@ RUN bun install
 # Copy the rest of the API code
 COPY api/ ./
 
+# Build the application
+RUN bun run build
+
 # Expose the port
 EXPOSE 4435
 
 # Start the server
-CMD ["bun", "run", "start"]
+CMD ["node", "dist/server.js"]

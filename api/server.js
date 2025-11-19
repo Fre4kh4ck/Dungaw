@@ -1,4 +1,4 @@
-/* eslint-disable no-undef */
+/* eslint-env node */
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
@@ -623,9 +623,6 @@ server.put("/events/status/update", async (req, res) => {
     if (!id || !status) {
       return res.status(400).json({ error: "Missing ID or Status" });
     }
-
-    let query;
-    let params;
 
     if (status === "Denied") {
       // 3. If denying, update status AND the reason

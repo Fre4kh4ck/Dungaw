@@ -1,3 +1,4 @@
+/* eslint-env node */
 import jwt from 'jsonwebtoken';
 
 function verifyToken(req, res, next) {
