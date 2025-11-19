@@ -182,7 +182,7 @@ export default function Calendars() {
         const data = await res.json();
 
         const approvedEvents = data.filter(
-          (event) => event.EventStatus === "Approved"
+          (event) => event.EventStatus === "approved"
         );
 
         // ✅ Parse EventStartDate and EventEndDate

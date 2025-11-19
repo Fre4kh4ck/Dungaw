@@ -16,7 +16,7 @@ export default function AdminHome() {
     const [submittedEvents, setSubmittedEvents] = useState([]);
     const [approvedEvents, setApprovedEvents] = useState([]);
     const [deniedEvents, setDeniedEvents] = useState([]);
-    const [activeTab, setActiveTab] = useState("Submitted");
+    const [activeTab, setActiveTab] = useState("submitted");
     const navigate = useNavigate(); // ✅ Hook for navigation
 
     // ✅ 1. GET THE CURRENT ROLE
@@ -27,12 +27,12 @@ export default function AdminHome() {
 
     // 🔹 Fetch events based on status
     const fetchEvents = async () => {
-        const statuses = ["Submitted", "Approved", "Denied"];
+        const statuses = ["submitted", "approved", "denied"];
         for (const status of statuses) {
             try {
                 const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/events/status/${status}`);
-                if (status === "Submitted") setSubmittedEvents(data);
-                else if (status === "Approved") setApprovedEvents(data);
+                if (status === "submitted") setSubmittedEvents(data);
+                else if (status === "approved") setApprovedEvents(data);
                 else setDeniedEvents(data);
             } catch (error) {
                 console.error(`Error fetching ${status} events`, error);
@@ -318,21 +318,21 @@ export default function AdminHome() {
                             <div className="card-body">
                                 <h4 className="fw-bold mb-3">Event Management</h4>
                                 <ul className="nav nav-tabs mb-3">
-                                    {["Submitted", "Approved", "Denied"].map((tab) => (
+                                    {["submitted", "approved", "denied"].map((tab) => (
                                         <li className="nav-item" key={tab}>
                                             <button
                                                 className={`nav-link ${activeTab === tab ? "active" : ""}`}
                                                 onClick={() => setActiveTab(tab)}
                                             >
-                                                {tab}
+                                                {tab.charAt(0).toUpperCase() + tab.slice(1)}
                                             </button>
                                         </li>
                                     ))}
                                 </ul>
 
-                                {activeTab === "Submitted" && renderEvents(submittedEvents)}
-                                {activeTab === "Approved" && renderEvents(approvedEvents)}
-                                {activeTab === "Denied" && renderEvents(deniedEvents)}
+                                {activeTab === "submitted" && renderEvents(submittedEvents)}
+                                {activeTab === "approved" && renderEvents(approvedEvents)}
+                                {activeTab === "denied" && renderEvents(deniedEvents)}
                             </div>
                         </div>
 

@@ -205,7 +205,7 @@ export default function Events() {
         const matchesDept =
             selectedDept === "" || event.EventDept === selectedDept;
 
-        const isApproved = event.EventStatus === "Approved";
+        const isApproved = event.EventStatus === "approved";
 
         // ✅ DATE LOGIC: Filter out past events
         // 1. Get current date and set time to 00:00:00 so we show events happening TODAY

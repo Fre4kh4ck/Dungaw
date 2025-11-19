@@ -203,7 +203,7 @@ export default function Home() {
         const res = await axios.get(`${import.meta.env.VITE_API_URL}/events`);
         const allEvents = Array.isArray(res.data[0]) ? res.data[0] : res.data;
 
-        const approvedEvents = allEvents.filter(event => event.EventStatus === "Approved");
+        const approvedEvents = allEvents.filter(event => event.EventStatus === "approved");
 
         // Parse EventStartDate and EventEndDate
         const formatted = approvedEvents.map((event) => {

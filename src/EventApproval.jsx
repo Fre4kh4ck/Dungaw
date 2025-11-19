@@ -36,9 +36,9 @@ export default function EventApproval() {
     };
 
     const refreshAll = () => {
-        fetchEventsByStatus("Submitted", setSubmittedEvents);
-        fetchEventsByStatus("Approved", setApprovedEvents);
-        fetchEventsByStatus("Denied", setDeniedEvents);
+        fetchEventsByStatus("submitted", setSubmittedEvents);
+        fetchEventsByStatus("approved", setApprovedEvents);
+        fetchEventsByStatus("denied", setDeniedEvents);
     };
 
     useEffect(() => {
@@ -51,7 +51,7 @@ export default function EventApproval() {
         try {
             await axios.put(`${import.meta.env.VITE_API_URL}/events/status/update`, {
                 id,
-                status: "Approved",
+                status: "approved",
                 reason: null // Send null for the reason
             });
             alert("✅ Event approved successfully!");
@@ -84,7 +84,7 @@ export default function EventApproval() {
         try {
             await axios.put(`${import.meta.env.VITE_API_URL}/events/status/update`, {
                 id: selectedEventId, // Use the ID from state
-                status: "Denied",
+                status: "denied",
                 reason: denialReason, // Pass the reason from state
             });
 
@@ -119,7 +119,7 @@ export default function EventApproval() {
                         <th>Photo</th>
                         {/* 🔴 NEW: Added Reason Header */}
                         <th>Reason</th>
-                        {status === "Submitted" ? <th>Actions</th> : <th>Status</th>}
+                        {status === "submitted" ? <th>Actions</th> : <th>Status</th>}
                     </tr>
                 </thead>
                 <tbody>
@@ -155,7 +155,7 @@ export default function EventApproval() {
                                     {event.EventDenialReason || <span className="text-muted">---</span>}
                                 </td>
 
-                                {status === "Submitted" ? (
+                                {status === "submitted" ? (
                                     <td>
                                         <div className="d-flex justify-content-center gap-2">
                                             <button
@@ -175,14 +175,14 @@ export default function EventApproval() {
                                 ) : (
                                     <td>
                                         <span
-                                            className={`badge rounded-pill px-3 py-2 ${status === "Approved"
+                                            className={`badge rounded-pill px-3 py-2 ${status === "approved"
                                                 ? "bg-success"
-                                                : status === "Denied"
+                                                : status === "denied"
                                                     ? "bg-danger"
                                                     : "bg-secondary"
                                                 }`}
                                         >
-                                            {status}
+                                            {status.charAt(0).toUpperCase() + status.slice(1)}
                                         </span>
                                     </td>
                                 )}
@@ -324,9 +324,9 @@ export default function EventApproval() {
                         {/* 🔹 Tab Content */}
                         <div className="card border-0 shadow-lg rounded-4 mt-3">
                             <div className="card-body p-4">
-                                {activeTab === "submitted" && renderTable(submittedEvents, "Submitted")}
-                                {activeTab === "approved" && renderTable(approvedEvents, "Approved")}
-                                {activeTab === "denied" && renderTable(deniedEvents, "Denied")}
+                                {activeTab === "submitted" && renderTable(submittedEvents, "submitted")}
+                                {activeTab === "approved" && renderTable(approvedEvents, "approved")}
+                                {activeTab === "denied" && renderTable(deniedEvents, "denied")}
                             </div>
                         </div>
 

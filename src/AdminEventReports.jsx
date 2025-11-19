@@ -381,7 +381,7 @@ export default function AdminEventReports() {
             location.toLowerCase().includes(searchTerm.toLowerCase()) ||
             venue.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesDept = selectedDept === "" || event.EventDept === selectedDept;
-        const isApproved = event.EventStatus === "Approved";
+        const isApproved = event.EventStatus === "approved";
         return matchesSearch && matchesDept && isApproved;
     });
 

@@ -624,18 +624,20 @@ server.put("/events/status/update", async (req, res) => {
       return res.status(400).json({ error: "Missing ID or Status" });
     }
 
-    if (status === "Denied") {
+    const lowerStatus = status.toLowerCase();
+
+    if (lowerStatus === "denied") {
       // 3. If denying, update status AND the reason
       // We default the reason to an empty string if it's not provided
-      await db.update(events).set({ event_status: status, event_denial_reason: reason || "" }).where(eq(events.event_id, id));
+      await db.update(events).set({ event_status: lowerStatus, event_denial_reason: reason || "" }).where(eq(events.event_id, id));
 
-    } else if (status === "Approved") {
+    } else if (lowerStatus === "approved") {
       // 4. If approving, update status and CLEAR any previous denial reason
-      await db.update(events).set({ event_status: status, event_denial_reason: null }).where(eq(events.event_id, id));
+      await db.update(events).set({ event_status: lowerStatus, event_denial_reason: null }).where(eq(events.event_id, id));
 
     } else {
       // 5. Fallback for any other status (if you have them)
-      await db.update(events).set({ event_status: status }).where(eq(events.event_id, id));
+      await db.update(events).set({ event_status: lowerStatus }).where(eq(events.event_id, id));
     }
     res.json({ success: true, message: `Event ${status} successfully!` });
 
@@ -665,7 +667,7 @@ server.post('/events/add', upload.single('photo'), async (req, res) => {
     event_description: task.description,
     event_photo: file ? file.originalname : null,
     event_dept: task.dept,
-    event_status: 'Submitted'
+    event_status: 'submitted'
   });
   // --- END OF MODIFICATION ---
 
