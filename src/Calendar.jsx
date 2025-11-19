@@ -10,7 +10,7 @@ import STAT from "./assets/stat.png";
 import FBLOGO from "./assets/fblogo.png";
 import INSTALOGO from "./assets/instalogo.png";
 
-// --- ✅ NEW STYLES FOR CALENDAR & LAYOUT ---
+// --- ✅ STYLES (Design Preserved + Mobile Fix Added) ---
 const CalendarStyles = () => (
   <style>{`
     /* Main page layout */
@@ -142,6 +142,31 @@ const CalendarStyles = () => (
       font-weight: bold;
       margin-bottom: 0;
     }
+
+    /* ============================================
+       ✅ FIX: RESPONSIVE MONTH NAVIGATION 
+       ============================================ */
+    @media (max-width: 576px) {
+      /* 1. Hide the double arrows (Jump Year) on small screens to save space */
+      .react-calendar__navigation__prev2-button,
+      .react-calendar__navigation__next2-button {
+        display: none !important;
+      }
+
+      /* 2. Ensure the Month Label uses available space and doesn't wrap */
+      .react-calendar__navigation__label {
+        font-size: 1.1rem !important;
+        flex-grow: 1 !important;
+        white-space: nowrap; 
+        overflow: hidden;
+      }
+
+      /* 3. Reduce padding on arrows */
+      .react-calendar__navigation button {
+        min-width: 40px !important;
+        padding: 0 !important;
+      }
+    }
   `}</style>
 );
 
@@ -174,7 +199,7 @@ export default function Calendars() {
     CMS: "#9E9E9E"
   };
 
-  // ✅ 1. FETCH EVENTS (MODIFIED)
+  // ✅ 1. FETCH EVENTS
   useEffect(() => {
     const fetchEvents = async () => {
       try {
@@ -246,7 +271,7 @@ export default function Calendars() {
     }
   };
 
-  // ✅ 3. FILTER EVENTS (MODIFIED)
+  // ✅ 3. FILTER EVENTS
   // Filters events for the *single selected day*
   const filterEvents = (selectedDate, currentDept, allEvents) => {
     // Normalize selectedDate to ignore time
@@ -289,7 +314,7 @@ export default function Calendars() {
     filterEvents(date, newDept, events); // Re-filter based on the new department
   };
 
-  // ✅ 4. UPCOMING EVENTS (MODIFIED)
+  // ✅ 4. UPCOMING EVENTS
   // Get events for the *entire* month (for agenda)
   const upcomingEvents = events
     .filter(event => {
@@ -301,7 +326,7 @@ export default function Calendars() {
     .sort((a, b) => a.startDate - b.startDate); // Sort by soonest
 
 
-  // ✅ 5. RENDER EVENT DOTS (MODIFIED)
+  // ✅ 5. RENDER EVENT DOTS
   // Helper function to render event dots on the calendar
   const renderEventDots = ({ date, view }) => {
     if (view !== 'month') return null;

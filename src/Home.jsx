@@ -53,7 +53,7 @@ const HomeStyles = () => (
       left: 50%;
       width: 100%; 
       height: 100%;
-      object-fit: cover; /* This ensures the video fills the card nicely */
+      object-fit: cover;
       transform: translate(-50%, -50%);
       z-index: 1;
       pointer-events: none;
@@ -75,15 +75,19 @@ const HomeStyles = () => (
       height: 45px;
       margin-bottom: 0.5rem;
     }
+    
+    /* --- CALENDAR FIXES START --- */
     .calendar-wrapper .react-calendar {
       width: 100%;
       border: none;
       font-family: 'Arial', sans-serif;
+      background-color: transparent;
     }
     .react-calendar__tile {
       border-radius: 0.5rem;
       position: relative;
       min-height: 55px;
+      padding: 10px 6.6667px; /* Default padding */
     }
     .react-calendar__tile--active {
       background: #711212 !important;
@@ -94,7 +98,38 @@ const HomeStyles = () => (
     }
     .react-calendar__navigation button {
       color: #711212;
+      min-width: 44px;
+      background: none;
     }
+    /* Remove dots under Mon, Tue, etc */
+    abbr[title] {
+        text-decoration: none !important;
+        font-weight: bold;
+        font-size: 0.9rem;
+    }
+    
+    /* MOBILE SPECIFIC FIXES */
+    @media (max-width: 576px) {
+        .react-calendar__tile {
+            min-height: 40px;
+            padding: 5px 2px !important; /* Less padding to prevent stacking */
+            font-size: 0.75rem !important; /* Smaller font */
+            overflow: hidden;
+        }
+        .react-calendar__month-view__days__day--weekend {
+            font-size: 0.75rem !important;
+        }
+        .react-calendar__navigation button {
+            font-size: 1rem; /* Smaller nav buttons */
+        }
+        .event-dot {
+            width: 4px;
+            height: 4px;
+            margin-top: 2px;
+        }
+    }
+    /* --- CALENDAR FIXES END --- */
+
     .event-dot {
       width: 6px;
       height: 6px;
@@ -230,7 +265,7 @@ const HomeStyles = () => (
       text-decoration: underline;
     }
 
-    /* --- PROFESSIONAL MODAL STYLING (For Details) --- */
+    /* --- PROFESSIONAL MODAL STYLING --- */
     .modal-content-custom {
       border: none;
       border-radius: 1rem;
@@ -291,7 +326,7 @@ export default function Home() {
 
   // Video state
   const [showVideoModal, setShowVideoModal] = useState(false);
-  const [selectedVideoSource, setSelectedVideoSource] = useState(null); // Stores MP4 file path
+  const [selectedVideoSource, setSelectedVideoSource] = useState(null);
 
   const [unreadChats, setUnreadChats] = useState([]);
   const [user, setUser] = useState(null);
@@ -300,7 +335,7 @@ export default function Home() {
   // MAP KEYS TO YOUR LOCAL MP4 FILES
   const VIDEO_SOURCES = {
     CCS: CCISMP4,
-    HM: CBAMP4, 
+    HM: CBAMP4,
     CMS: CMSMP4
   };
 
@@ -361,6 +396,7 @@ export default function Home() {
             return new Date(date.getFullYear(), date.getMonth(), date.getDate());
           };
           return {
+            ...event,
             ...event,
             startDate: parseDate(event.EventStartDate),
             endDate: parseDate(event.EventEndDate),
@@ -514,10 +550,24 @@ export default function Home() {
                 <li className="nav-item mb-2"><a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/events"><i className="bi bi-calendar2-event"></i> Events</a></li>
                 <li className="nav-item mb-2"><a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/chats"><i className="bi bi-chat-dots-fill"></i> Chat</a></li>
                 <li className="nav-item d-flex justify-content-center gap-3 mt-5">
-                   {/* Icons... */}
+                  {/* Icons... */}
+                </li>
+                <li className="nav-item d-flex justify-content-center gap-3">
+                  <a className="nav-link p-0" href="https://sims.antiquespride.edu.ph/aims/" target="_blank" rel="noopener noreferrer">
+                    <img style={{ width: '2rem', marginTop: "clamp(14rem, 17vw, 30rem)" }} src={UALOGO} alt="UA Logo" />
+                  </a>
+                  <a className="nav-link p-0" href="https://www.facebook.com/universityofantique" target="_blank" rel="noopener noreferrer">
+                    <img style={{ width: '2rem', marginTop: "clamp(14rem, 17vw, 30rem)" }} src={FBLOGO} alt="FB Logo" />
+                  </a>
+                  <a className="nav-link p-0" href="https://www.instagram.com/universityofantique/" target="_blank" rel="noopener noreferrer">
+                    <img style={{ width: '2rem', marginTop: "clamp(14rem, 17vw, 30rem)" }} src={INSTALOGO} alt="IG Logo" />
+                  </a>
                 </li>
                 <li className="nav-item mb-2 justify-content-center d-flex">
-                  <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg text-center" href="/login" onClick={handleLogout}>
+                  <a
+                    className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg text-center"
+                    href="/login"
+                  >
                     <i className="bi bi-box-arrow-right"></i> Log out
                   </a>
                 </li>
@@ -544,7 +594,7 @@ export default function Home() {
               {/* DEPARTMENTS GRID */}
               <h2 className="fw-bold mb-3" style={{ color: "#711212" }}>Discover Departments</h2>
               <div className="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
-                
+
                 {/* CCIS Card */}
                 <div className="col">
                   <div className="card course-card">
@@ -553,9 +603,7 @@ export default function Home() {
                       <img src={CCSLOGO} alt="CCIS" className="course-card-logo" />
                       <h4 className="fw-bold">CCIS</h4>
                       <div className="d-flex gap-2 mt-2">
-                        {/* View Details triggers Bootstrap Modal */}
                         <button className="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#modalCCIS">View Details</button>
-                        {/* Play Video triggers LOCAL VIDEO PLAYER (No YouTube) */}
                         <button className="btn btn-light btn-sm d-flex align-items-center gap-1" onClick={() => handlePlayVideo(VIDEO_SOURCES.CCS)}>
                           <i className="bi bi-play-fill"></i> Play Video
                         </button>
@@ -604,7 +652,8 @@ export default function Home() {
             {/* Right Column (Calendar/Agenda) */}
             <div className="col-lg-4">
               <div className="card border-0 shadow-sm rounded-4 mb-4">
-                <div className="card-body p-4 calendar-wrapper">
+                {/* MODIFIED: Changed p-4 to p-2 on mobile (p-md-4 on desktop) to give calendar space */}
+                <div className="card-body p-2 p-md-4 calendar-wrapper">
                   <h5 className="fw-bold text-center mb-3 text-danger"><i className="bi bi-calendar3 me-2"></i>Academic Calendar</h5>
                   <Calendar onChange={handleDateChange} value={date} className="border-0"
                     tileContent={({ date, view }) => {
@@ -694,7 +743,7 @@ export default function Home() {
               <ul className="list-group list-group-flush">
                 <li className="list-group-item custom-list-item"><i className="bi bi-laptop custom-list-icon"></i><span className="fw-semibold">BS in Information Technology</span></li>
                 <li className="list-group-item custom-list-item"><i className="bi bi-cpu custom-list-icon"></i><span className="fw-semibold">BS in Computer Science</span></li>
-                <li className="list-group-item custom-list-item"><i className="bi bi-controller custom-list-icon"></i><span className="fw-semibold">BS in Esports (New)</span></li>
+                <li className="list-group-item custom-list-item"><i className="bi bi-book custom-list-icon"></i><span className="fw-semibold">BL and Information Science</span></li>
               </ul>
             </div>
             <div className="modal-footer modal-footer-custom"><button type="button" className="btn btn-outline-secondary px-4 rounded-pill" data-bs-dismiss="modal">Close</button></div>
@@ -741,7 +790,7 @@ export default function Home() {
               <p className="text-muted mb-4">Dedicated to producing world-class seafarers and maritime professionals who are globally competitive and disciplined.</p>
               <div className="p-3 rounded-3 border d-flex align-items-center" style={{ backgroundColor: '#f8f9fa' }}>
                 <i className="bi bi-anchor-fill me-3 fs-2 text-secondary"></i>
-                <div><div className="text-uppercase fw-bold text-secondary" style={{ fontSize: '0.75rem' }}>Core Values</div><div className="fw-bold text-dark">Discipline, Competence, Integrity</div></div>
+                <div><div className="fw-bold">BS Marine Engineering</div><small>Upcoming Course</small></div>
               </div>
             </div>
             <div className="modal-footer modal-footer-custom"><button type="button" className="btn btn-outline-secondary px-4 rounded-pill" data-bs-dismiss="modal">Close</button></div>
@@ -749,40 +798,21 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 4. ENLARGED LOCAL VIDEO PLAYER (NO FLICKER) */}
+      {/* VIDEO MODAL (Shared) */}
       {showVideoModal && selectedVideoSource && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            backgroundColor: 'rgba(10, 10, 10, 0.95)',
-            zIndex: 99999,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-          onClick={handleCloseVideoModal}
-        >
-          <div
-            style={{ width: '90%', maxWidth: '1000px', position: 'relative' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="d-flex justify-content-between align-items-center mb-2">
-              <span className="text-white fw-bold">Now Playing</span>
-              <button onClick={handleCloseVideoModal} className="btn btn-sm btn-light rounded-pill px-3 fw-bold">Close <i className="bi bi-x-lg ms-2"></i></button>
-            </div>
-            <div className="ratio ratio-16x9 rounded-3 overflow-hidden" style={{ border: '2px solid #333', backgroundColor: '#000', boxShadow: '0 0 20px rgba(0,0,0,0.5)' }}>
-              {/* THIS PLAYS THE LOCAL FILE */}
-              <video 
-                src={selectedVideoSource} 
-                controls 
-                autoPlay 
-                style={{ width: '100%', height: '100%' }}
-              />
+        <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: "rgba(0,0,0,0.8)" }}>
+          <div className="modal-dialog modal-dialog-centered modal-lg">
+            <div className="modal-content bg-black border-0 rounded-4 overflow-hidden">
+              <div className="modal-header border-0 p-3 bg-dark text-white">
+                <h5 className="modal-title"><i className="bi bi-play-circle-fill me-2"></i>Department Video</h5>
+                <button type="button" className="btn-close btn-close-white" onClick={handleCloseVideoModal}></button>
+              </div>
+              <div className="modal-body p-0 bg-black d-flex justify-content-center align-items-center">
+                <video controls autoPlay className="w-100" style={{ maxHeight: '80vh' }}>
+                  <source src={selectedVideoSource} type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+              </div>
             </div>
           </div>
         </div>
