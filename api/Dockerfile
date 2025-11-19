@@ -4,13 +4,13 @@ FROM oven/bun:latest
 WORKDIR /app
 
 # Copy package.json and lockfile
-COPY api/package.json api/pnpm-lock.yaml ./
+COPY package.json   pnpm-lock.yaml ./
 
 # Install dependencies
 RUN bun install
 
 # Copy the rest of the API code
-COPY api/ ./
+COPY / ./
 
 # Build the application
 RUN bun run build
