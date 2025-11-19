@@ -1,20 +1,20 @@
 /* eslint-disable no-undef */
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const { db } = require('./db.js');
-const { accounts, events, chat_messages, joined_events, users } = require('./drizzle-schema.js');
-const { eq, and, gt, sql, count, desc, or } = require('drizzle-orm');
-const verifyToken = require('./middlewares/verifyToken.js');
-const multer = require('multer');
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import { db } from './db.js';
+import { accounts, events, chat_messages, joined_events, users } from './drizzle-schema.js';
+import { eq, and, gt, sql, count, desc, or } from 'drizzle-orm';
+import verifyToken from './middlewares/verifyToken.js';
+import multer from 'multer';
 const upload = multer();
-const path = require('path');
-const { OAuth2Client } = require('google-auth-library');
+import path from 'path';
+import { OAuth2Client } from 'google-auth-library';
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-const jwt = require('jsonwebtoken');
-const sgMail = require('@sendgrid/mail');
-const qr = require('qrcode');
-const { v4: uuidv4 } = require('uuid');
+import jwt from 'jsonwebtoken';
+import sgMail from '@sendgrid/mail';
+import qr from 'qrcode';
+import { v4 as uuidv4 } from 'uuid';
 
 const server = express();
 const host = 'localhost';

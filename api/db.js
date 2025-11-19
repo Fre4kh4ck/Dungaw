@@ -1,9 +1,8 @@
-/* eslint-disable no-undef */
-require('dotenv').config();
-const { drizzle } = require('drizzle-orm/postgres-js');
-const postgres = require('postgres');
+import 'dotenv/config';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
 
 const client = postgres(process.env.DATABASE_URL);
 const db = drizzle(client);
 
-module.exports = Object.freeze({ db: db });
+export { db };
