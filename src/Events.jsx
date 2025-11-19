@@ -9,7 +9,7 @@ import FBLOGO from './assets/fblogo.png'
 import INSTALOGO from './assets/instalogo.png'
 import STAT from './assets/stat.png'
 import BG1 from './assets/bg1.jpeg'
-import Loop from './Loop';
+// import Loop from './Loop'; // Replaced with standard map for better responsiveness
 import axios from 'axios';
 import Tick from './Tick';
 
@@ -191,11 +191,10 @@ export default function Events() {
         return matchesSearch && matchesDept && isApproved && isUpcoming;
     });
 
-    // ✅ 4. FETCH ON DEMAND: Logic to get joiners for filtered events
+    // ✅ 4. FETCH ON DEMAND
     useEffect(() => {
         const fetchJoinCounts = async () => {
             const counts = {};
-            // Use Promise.all to fetch parallel requests
             await Promise.all(
                 filteredEvents.map(async (event) => {
                     try {
@@ -216,8 +215,6 @@ export default function Events() {
     }, [filteredEvents]); 
     
     
-
-
     return (
         <>
             <div className='container-fluid'>
@@ -233,8 +230,17 @@ export default function Events() {
                     <button className="btn btn-outline-light d-lg-none" onClick={toggleSidebar}>☰</button>
                 </nav>
 
-                <div className={` border-end text-light position-fixed top-0 start-0 h-100 sidebar d-flex flex-column ${sidebarOpen ? "show" : ""}`}
-                    style={{ width: '250px', zIndex: 1040, boxShadow: '2px 0 10px rgba(0,0,0,0.1)', backgroundColor: '#711212ff' }}>
+                {/* Sidebar - Responsive Logic Added */}
+                <div className={`border-end text-light position-fixed top-0 start-0 h-100 sidebar d-flex flex-column ${sidebarOpen ? "show" : ""}`}
+                    style={{ 
+                        width: '250px', 
+                        zIndex: 1040, 
+                        boxShadow: '2px 0 10px rgba(0,0,0,0.1)', 
+                        backgroundColor: '#711212ff',
+                        // Hide sidebar on mobile unless open, show on desktop
+                        transform: isLargeScreen ? "translateX(0)" : (sidebarOpen ? "translateX(0)" : "translateX(-100%)"),
+                        transition: "transform 0.3s ease-in-out"
+                    }}>
                     <div className="px-4 pt-4 pb-2 border-bottom d-flex align-items-center gap-2">
                         <img src={UALOGO} alt="UA logo" style={{ width: '40px' }} />
                         <div>
@@ -303,31 +309,85 @@ export default function Events() {
                 </div>
             </div>
 
-            {/* Top Image + Search Bar */}
-            <div className="container-fluid">
-                <div className="row d-flex justify-content-start">
-                    <div className="col-sm-12 col-md-12 col-lg-12 position-relative" style={{ overflow: "hidden", marginTop: '6rem' }}>
-                        <div>
-                            <img src={BG1} alt="" style={{ width: "110rem", opacity: "0.8", transform: "translateX(-10px)" }} />
+            {/* Main Content Wrapper - Adjusts margin based on screen size */}
+            <div style={{ 
+                marginLeft: isLargeScreen ? "250px" : "0", 
+                transition: "margin-left 0.3s ease-in-out",
+                width: isLargeScreen ? "calc(100% - 250px)" : "100%",
+                overflowX: "hidden" // Prevents horizontal scroll
+            }}>
+                
+                {/* Top Image + Search Bar */}
+                <div className="container-fluid p-0">
+                    <div className="position-relative" style={{ marginTop: '6rem', width: '100%', minHeight: '60vh' }}>
+                        
+                        {/* Fix 1: Make background image responsive */}
+                        <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+                            <img src={BG1} alt="" 
+                                style={{ 
+                                    width: "100%", 
+                                    minHeight: "60vh", 
+                                    objectFit: "cover",
+                                    opacity: "0.8", 
+                                }} 
+                            />
                             <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", background: "linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.7))" }}></div>
                         </div>
 
-                        <div style={{ position: "absolute", top: "30%", left: "50%", transform: "translate(-50%, -30%)", textAlign: "center", color: "#fff", width: "80%", marginTop: "8rem" }}>
-                            <h1 style={{ fontWeight: "bold", fontSize: "2.5rem" }}>
+                        {/* Text Overlay */}
+                        <div style={{ 
+                            position: "absolute", 
+                            top: "50%", 
+                            left: "50%", 
+                            transform: "translate(-50%, -50%)", 
+                            textAlign: "center", 
+                            color: "#fff", 
+                            width: "90%", 
+                            maxWidth: "800px" 
+                        }}>
+                            <h1 style={{ fontWeight: "bold", fontSize: "clamp(1.8rem, 4vw, 2.5rem)" }}>
                                 <span style={{ color: "#00AEEF" }}>Live Today.</span> Live Campus Life.
                             </h1>
-                            <p style={{ fontSize: "1.2rem", marginBottom: "20px" }}>
+                            <p style={{ fontSize: "clamp(1rem, 2vw, 1.2rem)", marginBottom: "20px" }}>
                                 Discover the Most Exciting Campus Events Around You
                             </p>
 
-                            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", maxWidth: "700px", margin: "0 auto", background: "#fff", borderRadius: "8px", padding: "5px 10px" }}>
+                            {/* Fix 2: Search Bar Responsive Flex */}
+                            <div style={{ 
+                                display: "flex", 
+                                flexDirection: "row",
+                                flexWrap: "wrap", // Allows wrapping on mobile
+                                justifyContent: "center", 
+                                alignItems: "center", 
+                                width: "100%", 
+                                margin: "0 auto", 
+                                background: "#fff", 
+                                borderRadius: "8px", 
+                                padding: "5px 10px" 
+                            }}>
                                 <input type="text" placeholder="Search Events, Categories, Location..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    style={{ flex: 1, border: "none", outline: "none", padding: "10px", fontSize: "1rem", borderRadius: "5px" }}
+                                    style={{ 
+                                        flex: "1 1 200px", // Grow, shrink, base width
+                                        border: "none", 
+                                        outline: "none", 
+                                        padding: "10px", 
+                                        fontSize: "1rem", 
+                                        borderRadius: "5px",
+                                        minWidth: "0" // Prevents overflow
+                                    }}
                                 />
                                 <select value={selectedDept} onChange={(e) => setSelectedDept(e.target.value)}
-                                    style={{ border: "none", outline: "none", padding: "10px", fontSize: "1rem", background: "transparent" }}>
+                                    style={{ 
+                                        border: "none", 
+                                        outline: "none", 
+                                        padding: "10px", 
+                                        fontSize: "1rem", 
+                                        background: "transparent",
+                                        borderLeft: isLargeScreen ? "1px solid #eee" : "none",
+                                        marginTop: isLargeScreen ? "0" : "5px"
+                                    }}>
                                     <option value="">UA</option>
                                     <option value="CCIS">CCIS</option>
                                     <option value="CEA">CEA</option>
@@ -346,60 +406,59 @@ export default function Events() {
                         </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Event Grid */}
-            <div className="container-fluid mt-5 mb-5">
-                <div className="events-grid" style={{ marginLeft: isLargeScreen ? "15rem" : "0", transition: "all 0.3s ease-in-out" }}>
+                {/* Event Grid - Responsive Fix */}
+                <div className="container-fluid mt-5 mb-5 px-4">
                     {filteredEvents.length > 0 ? (
-                        <Loop repeat={filteredEvents.length}>
-                            {(index) => (
-                                <div key={index} className="card-wrapper">
-                                    <div className="card shadow-lg border-0 rounded-4 equal-card">
+                        <div className="row g-4">
+                            {/* Replaced custom Loop with Map for standard Bootstrap responsiveness */}
+                            {filteredEvents.map((event, index) => (
+                                <div key={index} className="col-12 col-md-6 col-lg-4 col-xl-3 d-flex align-items-stretch">
+                                    <div className="card shadow-lg border-0 rounded-4 w-100">
                                         <img
-                                            src={filteredEvents[index].EventPhoto ? `${import.meta.env.VITE_API_URL}/api/upload/${filteredEvents[index].EventPhoto}` : "/fallback.jpg"}
+                                            src={event.EventPhoto ? `${import.meta.env.VITE_API_URL}/api/upload/${event.EventPhoto}` : "/fallback.jpg"}
                                             className="card-img-top rounded-top-4"
-                                            alt={filteredEvents[index].EventName}
-                                            height={180}
+                                            alt={event.EventName}
+                                            style={{ height: '180px', objectFit: 'cover' }}
                                         />
 
-                                        <div className="card-body">
-                                            <p className="text-muted mb-1">
-                                                {formatEventDateRange(filteredEvents[index].EventStartDate, filteredEvents[index].EventEndDate)} • {filteredEvents[index].EventVenue}, {filteredEvents[index].EventTime}
+                                        <div className="card-body d-flex flex-column">
+                                            <p className="text-muted mb-1" style={{fontSize: '0.9rem'}}>
+                                                {formatEventDateRange(event.EventStartDate, event.EventEndDate)} • {event.EventVenue}
                                             </p>
-                                            <h5 className="card-title fw-bold">
-                                                {filteredEvents[index].EventName}, {filteredEvents[index].EventDept}
+                                            <h5 className="card-title fw-bold text-truncate">
+                                                {event.EventName}, {event.EventDept}
                                             </h5>
 
                                             {/* ✅ 5. DISPLAY THE COUNT HERE */}
                                             <p className="text-muted mb-2">
                                                 <i className="bi bi-people-fill me-2"></i>
-                                                {/* Look up count in state, default to 0 */}
-                                                {joinCounts[filteredEvents[index].EventID] ?? 0} Interested
+                                                {joinCounts[event.EventID] ?? 0} Interested
                                             </p>
 
-                                            <div className="d-flex align-items-center gap-2 mt-2">
+                                            <div className="mt-auto d-flex align-items-center gap-2 pt-3">
                                                 <button
                                                     className="btn btn-outline-danger d-flex align-items-center justify-content-center gap-2 fw-semibold"
-                                                    style={{ flexBasis: "70%", height: "45px", borderColor: "#711212ff", color: "#711212ff" }}
-                                                    onClick={() => handleJoinEvent(filteredEvents[index])}
+                                                    style={{ flex: "1", height: "45px", borderColor: "#711212ff", color: "#711212ff" }}
+                                                    onClick={() => handleJoinEvent(event)}
                                                 >
                                                     <i className="bi bi-people-fill"></i> Join
                                                 </button>
 
                                                 <button
                                                     className="btn btn-outline-secondary d-flex align-items-center justify-content-center fw-semibold"
-                                                    style={{ flexBasis: "30%", height: "45px", borderColor: "#711212ff", color: "#711212ff" }}
-                                                    onClick={() => handleViewInfo(filteredEvents[index])}
+                                                    style={{ width: "45px", height: "45px", borderColor: "#711212ff", color: "#711212ff", padding: 0 }}
+                                                    onClick={() => handleViewInfo(event)}
+                                                    title="View Info"
                                                 >
-                                                    <i className="bi bi-info-circle me-1"></i> View Info
+                                                    <i className="bi bi-info-circle fs-5"></i>
                                                 </button>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            )}
-                        </Loop>
+                            ))}
+                        </div>
                     ) : (
                         <h1 className="text-center text-muted mt-5">No events found</h1>
                     )}
