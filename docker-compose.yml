@@ -1,9 +1,0 @@
-services:
-  db:
-    image: postgres:17
-    restart: "no"
-    environment:
-      POSTGRES_PASSWORD: root
-      POSTGRES_DB: db
-    ports:
-      - "5432:5432"
