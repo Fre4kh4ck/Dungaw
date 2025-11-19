@@ -9,6 +9,10 @@ COPY package.json pnpm-lock.yaml ./
 # Install pnpm and dependencies
 RUN npm install -g pnpm && pnpm install --frozen-lockfile
 
+# Add ARG for env vars
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
+
 # Copy source code
 COPY . .
 
