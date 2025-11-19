@@ -1,9 +1,9 @@
 services:
   db:
-    image: mysql:latest
+    image: postgres:17
     restart: "no"
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: db
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: db
     ports:
-      - "3306:3306"
+      - "5432:5432"

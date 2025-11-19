@@ -18,7 +18,7 @@
     "google-auth-library": "^9.6.3",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
-    "mysql2": "^3.15.3",
+    "postgres": "^3.4.3",
     "qrcode": "^1.5.3",
     "uuid": "^9.0.1"
   }
