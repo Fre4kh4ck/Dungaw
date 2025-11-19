@@ -333,25 +333,24 @@ server.get("/chatroom/:id", async (req, res) => {
 
 
 // 🌟 --- REPLACE your /join-event endpoint with this updated version --- 🌟
+// 🌟 --- REPLACE your /join-event endpoint with this updated version --- 🌟
 server.post("/join-event", async (req, res) => {
-  const { email, eventId, eventName } = req.body;
+  // 1. ACCEPT eventDate from the frontend request
+  const { email, eventId, eventName, eventDate } = req.body;
 
   if (!email || !eventId || !eventName) {
     return res.status(400).json({ success: false, message: "Missing email, eventId, or eventName" });
   }
-
-  // 🌟 --- This is the FIXED code --- 🌟
 
   try {
     // 1. Check if already joined
     const existing = await db.select().from(joined_events).where(and(eq(joined_events.user_email, email), eq(joined_events.event_id, eventId)));
 
     if (existing.length > 0) {
-      // ...
       return res.status(409).json({ success: false, message: "Already joined this event" });
     }
 
-    // 2. Generate unique ticket ID and QR Code (Unchanged)
+    // 2. Generate unique ticket ID and QR Code
     const ticket_id = uuidv4();
     const qrData = JSON.stringify({
       email: email,
@@ -359,66 +358,63 @@ server.post("/join-event", async (req, res) => {
       ticketId: ticket_id
     });
 
-    // Generate the QR code as a Base64 Data URL
     const qrCodeDataURL = await qr.toDataURL(qrData);
 
-    // 3. Save to database (Unchanged)
+    // 3. Save to database
     await db.insert(joined_events).values({
       user_email: email,
       event_id: eventId,
       ticket_id
     });
 
-    // ✅ --- 4. PREPARE EMAIL ATTACHMENT ---
-    // Extract the base64 content from the data URL
-    // The data URL is "data:image/png;base64,THE_BASE64_DATA"
-    // We split at the comma and take the second part.
+    // 4. PREPARE EMAIL ATTACHMENT
     const base64Data = qrCodeDataURL.split(",")[1];
+
+    // Format date for email (optional, makes it look nicer if eventDate exists)
+    const dateDisplay = eventDate ? new Date(eventDate).toDateString() : "Date TBA";
 
     try {
       const msg = {
         to: email,
-        from: 'jmmvenegas@antiquespride.edu.ph', // Your verified sender
+        from: 'jmmvenegas@antiquespride.edu.ph',
         subject: `Your Ticket for ${eventName}`,
-
-        // ✅ HTML is updated to use 'cid:'
         html: `
-                      <div style="font-family: Arial, sans-serif; text-align: center; padding: 20px;">
-                          <h2>You're In!</h2>
-                          <p>You have successfully joined the event: <strong>${eventName}</strong>.</p>
-                          <p>Please present this unique QR code to the event admin for scanning.</p>
+              <div style="font-family: Arial, sans-serif; text-align: center; padding: 20px;">
+                  <h2 style="color: #711212;">You're In!</h2>
+                  <p>You have successfully joined the event: <strong>${eventName}</strong>.</p>
+                  
+                  <p style="font-size: 1.1em;"><strong>Date:</strong> ${dateDisplay}</p> 
+                  
+                  <p>Please present this unique QR code to the event admin for scanning.</p>
 
-                          <img src="cid:eventqrcode" alt="Your Event QR Code" style="width: 250px; height: 250px; margin-top: 20px;" />
+                  <img src="cid:eventqrcode" alt="Your Event QR Code" style="width: 250px; height: 250px; margin-top: 20px;" />
 
-                          <p style="margin-top: 30px; font-size: 0.9em; color: #777;">
-                              University of Antique Event Management
-                          </p>
-                      </div>
-                `,
-
-        // ✅ --- ADD THIS ATTACHMENTS ARRAY ---
+                  <p style="margin-top: 30px; font-size: 0.9em; color: #777;">
+                      University of Antique Event Management
+                  </p>
+              </div>
+        `,
         attachments: [
           {
-            content: base64Data,      // The raw base64 data
-            filename: 'qrcode.png',   // The name of the file
-            type: 'image/png',        // The MIME type
-            disposition: 'inline',    // Tells the email client to display it inline
-            content_id: 'eventqrcode' // The unique ID we reference in the HTML src
+            content: base64Data,
+            filename: 'qrcode.png',
+            type: 'image/png',
+            disposition: 'inline',
+            content_id: 'eventqrcode'
           }
         ]
       };
-      await sgMail.send(msg); // Send the email
+      await sgMail.send(msg);
 
     } catch (emailError) {
-      console.error("Email (SendGrid) failed to send, but user was joined:", emailError.response?.body || emailError);
+      console.error("Email failed to send:", emailError.response?.body || emailError);
     }
 
-    // 5. Send success response back to frontend (Unchanged)
-    // This is still correct because the browser modal CAN display base64 images
+    // 5. Send success response back to frontend
     res.json({
       success: true,
       message: "Event added to chat list!",
-      qrCodeDataURL: qrCodeDataURL
+      qrCodeDataURL: qrCodeDataURL // This allows the frontend modal to show the QR code immediately
     });
 
   } catch (err) {

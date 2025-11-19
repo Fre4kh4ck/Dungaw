@@ -15,6 +15,9 @@ import CBALOGO from './assets/CBALOGO.png'
 import CMSLOGO from './assets/CMSLOGO.png'
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import CMSMP4 from './assets/CMS.mp4';
+import CCISMP4 from './assets/CCSMP4.mp4';
+import CBAMP4 from './assets/HMVID.mp4';
 
 // --- STYLES (UPDATED FOR YOUTUBE BACKGROUNDS) ---
 const HomeStyles = () => (
@@ -635,16 +638,18 @@ export default function Home() {
               <h2 className="fw-bold mb-3" style={{ color: "#711212" }}>Discover Departments</h2>
               <div className="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
 
-                {/* Card 1: CCIS (YouTube) */}
+                {/* Card 1: CCIS */}
                 <div className="col">
                   <div className="card course-card">
-                    <iframe
+                    {/* CHANGED TO VIDEO TAG */}
+                    <video
                       className="youtube-background"
-                      src={`https://www.youtube.com/embed/${VIDEO_IDS.CCS}?autoplay=1&mute=1&controls=0&loop=1&playlist=${VIDEO_IDS.CCS}&start=10&playsinline=1&iv_load_policy=3&modestbranding=1&rel=0`}
-                      title="CCIS Video"
-                      allow="autoplay; encrypted-media; loop"
-                      allowFullScreen
-                    ></iframe>
+                      src={CCISMP4}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                    />
                     <div className="course-card-overlay">
                       <img src={CCSLOGO} alt="CCIS" className="course-card-logo" />
                       <h4 className="fw-bold">CCIS</h4>
@@ -667,16 +672,18 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Card 2: CBA (YouTube) */}
+                {/* Card 2: CBA */}
                 <div className="col">
                   <div className="card course-card">
-                    <iframe
+                    {/* CHANGED TO VIDEO TAG */}
+                    <video
                       className="youtube-background"
-                      src={`https://www.youtube.com/embed/${VIDEO_IDS.HM}?autoplay=1&mute=1&controls=0&loop=1&playlist=${VIDEO_IDS.HM}&start=0&playsinline=1&iv_load_policy=3&modestbranding=1&rel=0`}
-                      title="CBA Video"
-                      allow="autoplay; encrypted-media; loop"
-                      allowFullScreen
-                    ></iframe>
+                      src={CBAMP4}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                    />
                     <div className="course-card-overlay">
                       <img src={CBALOGO} alt="CBA" className="course-card-logo" />
                       <h4 className="fw-bold">CBA</h4>
@@ -699,16 +706,18 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Card 3: CMS (YouTube) */}
+                {/* Card 3: CMS */}
                 <div className="col">
                   <div className="card course-card">
-                    <iframe
+                    {/* CHANGED TO VIDEO TAG */}
+                    <video
                       className="youtube-background"
-                      src={`https://www.youtube.com/embed/${VIDEO_IDS.CMS}?autoplay=1&mute=1&controls=0&loop=1&playlist=${VIDEO_IDS.CMS}&start=0&playsinline=1&iv_load_policy=3&modestbranding=1&rel=0`}
-                      title="CMS Video"
-                      allow="autoplay; encrypted-media; loop"
-                      allowFullScreen
-                    ></iframe>
+                      src={CMSMP4}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                    />
                     <div className="course-card-overlay">
                       <img src={CMSLOGO} alt="CMS" className="course-card-logo" />
                       <h4 className="fw-bold">CMS</h4>
@@ -730,7 +739,6 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
-
               </div>
             </div>
 

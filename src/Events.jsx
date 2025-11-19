@@ -14,6 +14,7 @@ import axios from 'axios';
 import Tick from './Tick';
 
 export default function Events() {
+    // 1. Existing Timer/Tick
     useEffect(() => {
         Tick(GetEvents);
     }, []);
@@ -24,6 +25,8 @@ export default function Events() {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedDept, setSelectedDept] = useState("");
 
+    // ✅ 2. NEW STATE: Store counts here { "EventID": Count }
+    const [joinCounts, setJoinCounts] = useState({});
 
     // Modal state for View Info
     const [showModal, setShowModal] = useState(false);
@@ -43,11 +46,11 @@ export default function Events() {
     const [showJoinModal, setShowJoinModal] = useState(false);
     const [joinedEvent, setJoinedEvent] = useState(null);
 
-    // ✅ New states for confirmation modal
+    // Confirmation modal states
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [eventToJoin, setEventToJoin] = useState(null);
 
-    // ✅ NEW STATE: To store the QR code data URL
+    // QR code state
     const [qrCodeUrl, setQrCodeUrl] = useState("");
 
     const handleJoinEvent = (event) => {
@@ -55,8 +58,7 @@ export default function Events() {
         setShowConfirmModal(true);
     };
 
-
-    // ✅ MODIFIED: This function now handles everything
+    // Join Logic
     const confirmJoinEvent = async () => {
         const user = JSON.parse(localStorage.getItem("user"));
         const userEmail = user?.email;
@@ -67,22 +69,15 @@ export default function Events() {
         }
 
         try {
-            // ✅ SINGLE API CALL: This one endpoint will
-            // 1. Save join to DB
-            // 2. Generate unique ticketId
-            // 3. Generate QR code
-            // 4. Send email with QR code
-            // 5. Return QR code to display here
             const response = await axios.post(`${import.meta.env.VITE_API_URL}/join-event`, {
                 email: userEmail,
                 eventId: eventToJoin.EventID,
-                eventName: eventToJoin.EventName // Pass eventName for the email
+                eventName: eventToJoin.EventName,
+                eventDate: eventToJoin.EventStartDate
             });
 
-            // Get the QR code URL from the backend response
             const { qrCodeDataURL } = response.data;
 
-            // Save it to state to show in the modal
             if (qrCodeDataURL) {
                 setQrCodeUrl(qrCodeDataURL);
             }
@@ -91,85 +86,67 @@ export default function Events() {
             setShowConfirmModal(false);
             setJoinedEvent(eventToJoin);
             setShowJoinModal(true);
+            
+            // ✅ 3. OPTIMISTIC UPDATE: Increase count immediately on success
+            setJoinCounts(prev => ({
+                ...prev,
+                [eventToJoin.EventID]: (prev[eventToJoin.EventID] || 0) + 1
+            }));
+            
             setEventToJoin(null);
+
         } catch (err) {
             console.error("Join event error:", err.response?.data || err);
-            // Handle "Already joined" error from backend
             if (err.response?.data?.message === "Already joined this event") {
                 alert("You have already joined this event.");
             } else {
                 alert("Failed to join event. Please try again.");
             }
-            setShowConfirmModal(false); // Close confirm modal on error
+            setShowConfirmModal(false);
         }
     };
-
 
     const handleCloseConfirmModal = () => {
         setShowConfirmModal(false);
         setEventToJoin(null);
     };
 
-    // ✅ MODIFIED: Clear QR code when closing success modal
     const handleCloseJoinModal = () => {
         setShowJoinModal(false);
         setJoinedEvent(null);
-        setQrCodeUrl(""); // Reset the QR code URL
+        setQrCodeUrl(""); 
     };
 
-    // ✅ FIX: Add this new helper function
+    // Helper Functions
     const formatDate = (dateString) => {
-        if (!dateString) {
-            return "N/A";
-        }
+        if (!dateString) return "N/A";
         const date = new Date(dateString);
-        if (isNaN(date.getTime())) {
-            return "Invalid Date"; // Handle cases where dateString is not a valid date
-        }
-        return date.toDateString();
+        return isNaN(date.getTime()) ? "Invalid Date" : date.toDateString();
     };
 
-    // ✅ NEW FUNCTION FOR DATE RANGE
     const formatEventDateRange = (startDateString, endDateString) => {
-        if (!startDateString) {
-            return "N/A";
-        }
-
+        if (!startDateString) return "N/A";
         const startDate = new Date(startDateString);
-        if (isNaN(startDate.getTime())) {
-            return "Invalid Date";
-        }
-
+        if (isNaN(startDate.getTime())) return "Invalid Date";
         const options = { month: 'short', day: 'numeric' };
 
-        // 1. Check if end date exists
-        if (!endDateString) {
-            return startDate.toLocaleDateString('en-US', options); // e.g., "Nov 24"
-        }
-
+        if (!endDateString) return startDate.toLocaleDateString('en-US', options);
         const endDate = new Date(endDateString);
-        if (isNaN(endDate.getTime())) {
-            return startDate.toLocaleDateString('en-US', options); // Invalid end date
-        }
+        if (isNaN(endDate.getTime())) return startDate.toLocaleDateString('en-US', options);
 
-        // 2. Check if they are the same day
         if (startDate.toDateString() === endDate.toDateString()) {
-            return startDate.toLocaleDateString('en-US', options); // e.g., "Nov 24"
+            return startDate.toLocaleDateString('en-US', options);
         }
 
-        // 3. They are different days, check for same month
         if (startDate.getMonth() === endDate.getMonth()) {
             const startDay = startDate.getDate();
             const endDay = endDate.getDate();
             const month = startDate.toLocaleString('default', { month: 'short' });
-            return `${month} ${startDay}-${endDay}`; // e.g., "Nov 24-28"
+            return `${month} ${startDay}-${endDay}`;
         } else {
-            // 4. Different months
-            // e.g., "Nov 28 - Dec 2"
             return `${startDate.toLocaleDateString('en-US', options)} - ${endDate.toLocaleDateString('en-US', options)}`;
         }
     };
-
 
     useEffect(() => {
         const handleResize = () => setIsLargeScreen(window.innerWidth >= 992);
@@ -202,36 +179,50 @@ export default function Events() {
             location.toLowerCase().includes(searchTerm.toLowerCase()) ||
             venue.toLowerCase().includes(searchTerm.toLowerCase());
 
-        const matchesDept =
-            selectedDept === "" || event.EventDept === selectedDept;
-
+        const matchesDept = selectedDept === "" || event.EventDept === selectedDept;
         const isApproved = event.EventStatus === "approved";
 
-        // ✅ DATE LOGIC: Filter out past events
-        // 1. Get current date and set time to 00:00:00 so we show events happening TODAY
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-
-        // 2. Get the event date (Use EndDate, fallback to StartDate if EndDate is null)
         const eventDateStr = event.EventEndDate || event.EventStartDate;
         const eventDate = new Date(eventDateStr);
-
-        // 3. check if eventDate is valid and matches the condition
-        // Logic: Event Date must be greater than or equal to Today
         const isUpcoming = !isNaN(eventDate.getTime()) && eventDate >= today;
 
-        // ✅ Add isUpcoming to the return statement
         return matchesSearch && matchesDept && isApproved && isUpcoming;
     });
+
+    // ✅ 4. FETCH ON DEMAND: Logic to get joiners for filtered events
+    useEffect(() => {
+        const fetchJoinCounts = async () => {
+            const counts = {};
+            // Use Promise.all to fetch parallel requests
+            await Promise.all(
+                filteredEvents.map(async (event) => {
+                    try {
+                        const res = await axios.get(`${import.meta.env.VITE_API_URL}/event/${event.EventID}/join-count`);
+                        counts[event.EventID] = res.data.total || 0;
+                    } catch (err) {
+                        console.error("Error fetching join count:", err);
+                        counts[event.EventID] = 0;
+                    }
+                })
+            );
+            setJoinCounts(prev => ({ ...prev, ...counts }));
+        };
+
+        if (filteredEvents.length > 0) {
+            fetchJoinCounts();
+        }
+    }, [filteredEvents]); 
+    
+    
 
 
     return (
         <>
             <div className='container-fluid'>
-                <nav
-                    className="navbar navbar-dark fixed-top d-flex justify-content-between px-3"
-                    style={{ zIndex: 1050, height: '7rem', paddingTop: '1rem', paddingBottom: '1rem', backgroundColor: '#711212ff' }}
-                >
+                <nav className="navbar navbar-dark fixed-top d-flex justify-content-between px-3"
+                    style={{ zIndex: 1050, height: '7rem', paddingTop: '1rem', paddingBottom: '1rem', backgroundColor: '#711212ff' }}>
                     <div className="d-flex align-items-center">
                         <img src={UALOGO} className="ua-logo me-2" alt="UA logo" style={{ width: "50px" }} />
                         <div className="text-white">
@@ -239,15 +230,11 @@ export default function Events() {
                             <div className="smc-text" style={{ fontSize: '0.85rem' }}>Sibalom Main Campus</div>
                         </div>
                     </div>
-                    <button className="btn btn-outline-light d-lg-none" onClick={toggleSidebar}>
-                        ☰
-                    </button>
+                    <button className="btn btn-outline-light d-lg-none" onClick={toggleSidebar}>☰</button>
                 </nav>
 
-                <div
-                    className={` border-end text-light position-fixed top-0 start-0 h-100 sidebar d-flex flex-column ${sidebarOpen ? "show" : ""}`}
-                    style={{ width: '250px', zIndex: 1040, boxShadow: '2px 0 10px rgba(0,0,0,0.1)', backgroundColor: '#711212ff' }}
-                >
+                <div className={` border-end text-light position-fixed top-0 start-0 h-100 sidebar d-flex flex-column ${sidebarOpen ? "show" : ""}`}
+                    style={{ width: '250px', zIndex: 1040, boxShadow: '2px 0 10px rgba(0,0,0,0.1)', backgroundColor: '#711212ff' }}>
                     <div className="px-4 pt-4 pb-2 border-bottom d-flex align-items-center gap-2">
                         <img src={UALOGO} alt="UA logo" style={{ width: '40px' }} />
                         <div>
@@ -301,9 +288,7 @@ export default function Events() {
                         </li>
                     </ul>
 
-                    <img
-                        src={STAT}
-                        alt="Sidebar design"
+                    <img src={STAT} alt="Sidebar design"
                         style={{
                             position: "absolute",
                             bottom: "-4.5rem",
@@ -318,44 +303,16 @@ export default function Events() {
                 </div>
             </div>
 
-            {/* Top Image + Search Bar Section (Unchanged) */}
+            {/* Top Image + Search Bar */}
             <div className="container-fluid">
                 <div className="row d-flex justify-content-start">
                     <div className="col-sm-12 col-md-12 col-lg-12 position-relative" style={{ overflow: "hidden", marginTop: '6rem' }}>
                         <div>
-                            <img
-                                src={BG1}
-                                alt=""
-                                style={{
-                                    width: "110rem",
-                                    opacity: "0.8",
-                                    transform: "translateX(-10px)",
-                                }}
-                            />
-                            <div
-                                style={{
-                                    position: "absolute",
-                                    top: 0,
-                                    left: 0,
-                                    width: "100%",
-                                    height: "100%",
-                                    background: "linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.7))",
-                                }}
-                            ></div>
+                            <img src={BG1} alt="" style={{ width: "110rem", opacity: "0.8", transform: "translateX(-10px)" }} />
+                            <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", background: "linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.7))" }}></div>
                         </div>
 
-                        <div
-                            style={{
-                                position: "absolute",
-                                top: "30%",
-                                left: "50%",
-                                transform: "translate(-50%, -30%)",
-                                textAlign: "center",
-                                color: "#fff",
-                                width: "80%",
-                                marginTop: "8rem",
-                            }}
-                        >
+                        <div style={{ position: "absolute", top: "30%", left: "50%", transform: "translate(-50%, -30%)", textAlign: "center", color: "#fff", width: "80%", marginTop: "8rem" }}>
                             <h1 style={{ fontWeight: "bold", fontSize: "2.5rem" }}>
                                 <span style={{ color: "#00AEEF" }}>Live Today.</span> Live Campus Life.
                             </h1>
@@ -363,43 +320,14 @@ export default function Events() {
                                 Discover the Most Exciting Campus Events Around You
                             </p>
 
-                            <div
-                                style={{
-                                    display: "flex",
-                                    justifyContent: "center",
-                                    alignItems: "center",
-                                    maxWidth: "700px",
-                                    margin: "0 auto",
-                                    background: "#fff",
-                                    borderRadius: "8px",
-                                    padding: "5px 10px",
-                                }}
-                            >
-                                <input
-                                    type="text"
-                                    placeholder="Search Events, Categories, Location..."
+                            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", maxWidth: "700px", margin: "0 auto", background: "#fff", borderRadius: "8px", padding: "5px 10px" }}>
+                                <input type="text" placeholder="Search Events, Categories, Location..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    style={{
-                                        flex: 1,
-                                        border: "none",
-                                        outline: "none",
-                                        padding: "10px",
-                                        fontSize: "1rem",
-                                        borderRadius: "5px",
-                                    }}
+                                    style={{ flex: 1, border: "none", outline: "none", padding: "10px", fontSize: "1rem", borderRadius: "5px" }}
                                 />
-                                <select
-                                    value={selectedDept}
-                                    onChange={(e) => setSelectedDept(e.target.value)}
-                                    style={{
-                                        border: "none",
-                                        outline: "none",
-                                        padding: "10px",
-                                        fontSize: "1rem",
-                                        background: "transparent",
-                                    }}
-                                >
+                                <select value={selectedDept} onChange={(e) => setSelectedDept(e.target.value)}
+                                    style={{ border: "none", outline: "none", padding: "10px", fontSize: "1rem", background: "transparent" }}>
                                     <option value="">UA</option>
                                     <option value="CCIS">CCIS</option>
                                     <option value="CEA">CEA</option>
@@ -413,57 +341,47 @@ export default function Events() {
                             </div>
 
                             <p style={{ marginTop: "20px", fontSize: "1rem" }}>
-                                DISCOVER THE <span style={{ color: "#00AEEF" }}>CAMPUS</span>{" "}
+                                DISCOVER THE <span style={{ color: "#00AEEF" }}>CAMPUS</span>
                             </p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Event Grid (Unchanged) */}
+            {/* Event Grid */}
             <div className="container-fluid mt-5 mb-5">
-                <div
-                    className="events-grid"
-                    style={{
-                        marginLeft: isLargeScreen ? "15rem" : "0",
-                        transition: "all 0.3s ease-in-out",
-                    }}
-                >
+                <div className="events-grid" style={{ marginLeft: isLargeScreen ? "15rem" : "0", transition: "all 0.3s ease-in-out" }}>
                     {filteredEvents.length > 0 ? (
                         <Loop repeat={filteredEvents.length}>
                             {(index) => (
                                 <div key={index} className="card-wrapper">
                                     <div className="card shadow-lg border-0 rounded-4 equal-card">
                                         <img
-                                            src={
-                                                filteredEvents[index].EventPhoto
-                                                    ? `${import.meta.env.VITE_API_URL}/api/upload/${filteredEvents[index].EventPhoto}`
-                                                    : "/fallback.jpg"
-                                            }
+                                            src={filteredEvents[index].EventPhoto ? `${import.meta.env.VITE_API_URL}/api/upload/${filteredEvents[index].EventPhoto}` : "/fallback.jpg"}
                                             className="card-img-top rounded-top-4"
                                             alt={filteredEvents[index].EventName}
                                             height={180}
                                         />
 
                                         <div className="card-body">
-                                            {/* ✅ MODIFIED LINE */}
                                             <p className="text-muted mb-1">
                                                 {formatEventDateRange(filteredEvents[index].EventStartDate, filteredEvents[index].EventEndDate)} • {filteredEvents[index].EventVenue}, {filteredEvents[index].EventTime}
                                             </p>
                                             <h5 className="card-title fw-bold">
                                                 {filteredEvents[index].EventName}, {filteredEvents[index].EventDept}
                                             </h5>
-                                            <p className="text-muted mb-2">4+ Interested</p>
+
+                                            {/* ✅ 5. DISPLAY THE COUNT HERE */}
+                                            <p className="text-muted mb-2">
+                                                <i className="bi bi-people-fill me-2"></i>
+                                                {/* Look up count in state, default to 0 */}
+                                                {joinCounts[filteredEvents[index].EventID] ?? 0} Interested
+                                            </p>
 
                                             <div className="d-flex align-items-center gap-2 mt-2">
                                                 <button
                                                     className="btn btn-outline-danger d-flex align-items-center justify-content-center gap-2 fw-semibold"
-                                                    style={{
-                                                        flexBasis: "70%",
-                                                        height: "45px",
-                                                        borderColor: "#711212ff",
-                                                        color: "#711212ff",
-                                                    }}
+                                                    style={{ flexBasis: "70%", height: "45px", borderColor: "#711212ff", color: "#711212ff" }}
                                                     onClick={() => handleJoinEvent(filteredEvents[index])}
                                                 >
                                                     <i className="bi bi-people-fill"></i> Join
@@ -471,12 +389,7 @@ export default function Events() {
 
                                                 <button
                                                     className="btn btn-outline-secondary d-flex align-items-center justify-content-center fw-semibold"
-                                                    style={{
-                                                        flexBasis: "30%",
-                                                        height: "45px",
-                                                        borderColor: "#711212ff",
-                                                        color: "#711212ff",
-                                                    }}
+                                                    style={{ flexBasis: "30%", height: "45px", borderColor: "#711212ff", color: "#711212ff" }}
                                                     onClick={() => handleViewInfo(filteredEvents[index])}
                                                 >
                                                     <i className="bi bi-info-circle me-1"></i> View Info
@@ -493,77 +406,34 @@ export default function Events() {
                 </div>
             </div>
 
-            {/* ------------------------------------------- */}
-            {/* ✅ --- REDESIGNED VIEW INFO MODAL --- ✅ */}
-            {/* ------------------------------------------- */}
+            {/* View Info Modal */}
             {showModal && selectedEvent && (
-                <div
-                    className="modal fade show"
-                    style={{
-                        display: "block",
-                        backgroundColor: "rgba(0, 0, 0, 0.3)", // Darker backdrop
-                        backdropFilter: "blur(5px)",
-                    }}
-                >
-                    {/* Make modal larger */}
-                    <div className="modal-dialog modal-lg modal-dialog-centered">
+                <div className="modal fade show" style={{ display: "block", backgroundColor: "rgba(0, 0, 0, 0.5)", backdropFilter: "blur(5px)" }}>
+                    <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
                         <div className="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                            <div className="modal-header text-white" style={{ backgroundColor: "#711212ff" }}>
+                                <h5 className="modal-title fw-bold">{selectedEvent.EventName}</h5>
+                                <button type="button" className="btn-close btn-close-white" onClick={handleCloseModal}></button>
+                            </div>
 
-                            {/* Modal body is now p-0 to allow image banner */}
                             <div className="modal-body p-0">
-
-                                {/* 1. Event Image Banner */}
-                                {/* Close button is absolutely positioned on top of the image */}
                                 <div className="position-relative">
                                     <img
-                                        src={
-                                            selectedEvent.EventPhoto
-                                                ? `${import.meta.env.VITE_API_URL}/api/upload/${selectedEvent.EventPhoto}`
-                                                : "/fallback.jpg"
-                                        }
+                                        src={selectedEvent.EventPhoto ? `${import.meta.env.VITE_API_URL}/api/upload/${selectedEvent.EventPhoto}` : "/fallback.jpg"}
                                         alt={selectedEvent.EventName}
-                                        style={{ width: '100%', height: '250px', objectFit: 'cover' }}
+                                        style={{ width: '100%', height: '300px', objectFit: 'cover' }}
                                     />
-                                    <button
-                                        type="button"
-                                        className="btn-close btn-close-white fs-5"
-                                        onClick={handleCloseModal}
-                                        style={{
-                                            position: 'absolute',
-                                            top: '1rem',
-                                            right: '1rem',
-                                            backgroundColor: 'rgba(0,0,0,0.5)',
-                                            borderRadius: '50%',
-                                            padding: '0.5rem'
-                                        }}
-                                    ></button>
                                 </div>
 
                                 <div className="p-4">
-                                    {/* Event Title */}
-                                    <h3 className="fw-bold mb-3" style={{ color: "#711212ff" }}>
-                                        {selectedEvent.EventName || "Event Information"}
-                                    </h3>
-
-                                    {/* 2. Key Details List */}
                                     <ul className="list-group list-group-flush mb-4">
-                                        {/* ✅ MODIFIED DATE SECTION */}
                                         <li className="list-group-item d-flex gap-3 px-0 align-items-center">
                                             <i className="bi bi-calendar-event fs-4" style={{ color: "#711212ff" }}></i>
                                             <div>
-                                                <h6 className="mb-0 fw-bold">
-                                                    {selectedEvent.EventEndDate && selectedEvent.EventStartDate !== selectedEvent.EventEndDate ? "Dates" : "Date"}
-                                                </h6>
-                                                <span className="text-muted">
-                                                    {formatDate(selectedEvent.EventStartDate)}
-                                                    {selectedEvent.EventEndDate && selectedEvent.EventStartDate !== selectedEvent.EventEndDate && (
-                                                        ` - ${formatDate(selectedEvent.EventEndDate)}`
-                                                    )}
-                                                </span>
+                                                <h6 className="mb-0 fw-bold">{selectedEvent.EventEndDate && selectedEvent.EventStartDate !== selectedEvent.EventEndDate ? "Dates" : "Date"}</h6>
+                                                <span className="text-muted">{formatDate(selectedEvent.EventStartDate)}{selectedEvent.EventEndDate && selectedEvent.EventStartDate !== selectedEvent.EventEndDate && (` - ${formatDate(selectedEvent.EventEndDate)}`)}</span>
                                             </div>
                                         </li>
-                                        {/* END MODIFIED DATE SECTION */}
-
                                         <li className="list-group-item d-flex gap-3 px-0 align-items-center">
                                             <i className="bi bi-clock fs-4" style={{ color: "#711212ff" }}></i>
                                             <div>
@@ -587,28 +457,15 @@ export default function Events() {
                                         </li>
                                     </ul>
 
-                                    {/* 3. Description Section */}
                                     <h6 className="fw-bold">About this event</h6>
-                                    <p
-                                        className="text-muted"
-                                        style={{
-                                            fontSize: "1rem",
-                                            lineHeight: "1.6",
-                                            textAlign: "justify",
-                                        }}
-                                    >
+                                    <p className="text-muted" style={{ fontSize: "1rem", lineHeight: "1.6", textAlign: "justify" }}>
                                         {selectedEvent.EventDescription || "No description available."}
                                     </p>
                                 </div>
                             </div>
-                            {/* --- End New Modal Body --- */}
 
                             <div className="modal-footer border-0" style={{ backgroundColor: "#f8f9fa" }}>
-                                <button
-                                    className="btn fw-semibold text-white px-4"
-                                    style={{ backgroundColor: "#711212ff" }}
-                                    onClick={handleCloseModal}
-                                >
+                                <button className="btn fw-semibold text-white px-4" style={{ backgroundColor: "#711212ff" }} onClick={handleCloseModal}>
                                     Close
                                 </button>
                             </div>
@@ -617,16 +474,9 @@ export default function Events() {
                 </div>
             )}
 
-            {/* Confirm Join Modal (Unchanged) */}
+            {/* Confirm Join Modal */}
             {showConfirmModal && eventToJoin && (
-                <div
-                    className="modal fade show"
-                    style={{
-                        display: "block",
-                        backgroundColor: "rgba(255, 255, 255, 0.43)",
-                        backdropFilter: "blur(1px)",
-                    }}
-                >
+                <div className="modal fade show" style={{ display: "block", backgroundColor: "rgba(255, 255, 255, 0.43)", backdropFilter: "blur(1px)" }}>
                     <div className="modal-dialog modal-dialog-centered">
                         <div className="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
                             <div className="modal-header text-white" style={{ backgroundColor: "#711212ff" }}>
@@ -640,64 +490,54 @@ export default function Events() {
                                 </p>
                             </div>
                             <div className="modal-footer border-0 d-flex justify-content-center">
-                                <button className="btn btn-secondary fw-semibold px-4" onClick={handleCloseConfirmModal}>Cancel</button>
-
-                                <button className="btn text-white fw-semibold px-4" style={{ backgroundColor: "#711212ff" }} onClick={confirmJoinEvent}>Join</button>
+                                <button className="btn btn-secondary px-4" onClick={handleCloseConfirmModal}>Cancel</button>
+                                <button className="btn btn-danger px-4" style={{ backgroundColor: "#711212ff" }} onClick={confirmJoinEvent}>
+                                    Yes, Join
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Join Success Modal (Unchanged) */}
+            {/* Success Modal with QR Code */}
             {showJoinModal && joinedEvent && (
-                <div
-                    className="modal fade show"
-                    style={{
-                        display: "block",
-                        backgroundColor: "rgba(255, 255, 255, 0.43)",
-                        backdropFilter: "blur(1px)",
-                    }}
-                >
+                <div className="modal fade show" style={{ display: "block", backgroundColor: "rgba(0, 0, 0, 0.5)", backdropFilter: "blur(3px)" }}>
                     <div className="modal-dialog modal-dialog-centered">
                         <div className="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-                            <div
-                                className="modal-header text-white"
-                                style={{ backgroundColor: "#711212ff" }}
-                            >
-                                <h5 className="modal-title fw-bold">Successfully Joined!</h5>
-                                <button
-                                    type="button"
-                                    className="btn-close btn-close-white"
-                                    onClick={handleCloseJoinModal}
-                                ></button>
+                            <div className="modal-header text-white justify-content-center position-relative" style={{ backgroundColor: "#711212ff" }}>
+                                <h5 className="modal-title fw-bold">
+                                    <i className="bi bi-check-circle-fill me-2"></i>
+                                    Successfully Joined!
+                                </h5>
+                                <button type="button" className="btn-close btn-close-white position-absolute end-0 me-3" onClick={handleCloseJoinModal}></button>
                             </div>
-                            <div className="modal-body p-4 text-center">
-                                <i className="bi bi-check-circle-fill text-success display-4 mb-3"></i>
-                                <p className="fw-semibold fs-5">
-                                    You have successfully joined <b>{joinedEvent.EventName}</b>!
-                                </p>
-                                <p className="text-muted">
-                                    Here is your unique ticket. A copy has been sent to your email.
-                                </p>
 
-                                {qrCodeUrl ? (
-                                    <img
-                                        src={qrCodeUrl}
-                                        alt="Your Event QR Code"
-                                        className="img-fluid my-2 border rounded"
-                                        style={{ maxWidth: "250px" }}
-                                    />
-                                ) : (
-                                    <p className="text-muted">Generating QR code...</p>
-                                )}
+                            <div className="modal-body p-4 text-center bg-white">
+                                <h4 className="fw-bold text-dark mb-3">{joinedEvent.EventName}</h4>
+
+                                <div className="card p-3 mb-3 mx-auto" style={{ maxWidth: '300px', backgroundColor: '#f9f9f9', border: '1px dashed #711212ff' }}>
+                                    {qrCodeUrl ? (
+                                        <>
+                                            <img src={qrCodeUrl} alt="Ticket QR Code" className="img-fluid mb-2" />
+                                            <small className="text-muted d-block">Scan this for attendance</small>
+                                        </>
+                                    ) : (
+                                        <div className="d-flex justify-content-center align-items-center" style={{ height: "200px" }}>
+                                            <div className="spinner-border text-danger" role="status">
+                                                <span className="visually-hidden">Loading...</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                
+                                <p className="text-muted mb-0">
+                                    A copy of this ticket has been sent to your email.
+                                </p>
                             </div>
-                            <div className="modal-footer border-0 d-flex justify-content-center">
-                                <button
-                                    className="btn fw-semibold text-white px-4"
-                                    style={{ backgroundColor: "#711212ff" }}
-                                    onClick={handleCloseJoinModal}
-                                >
+
+                            <div className="modal-footer border-0 justify-content-center bg-light">
+                                <button className="btn btn-success fw-bold px-4" onClick={handleCloseJoinModal}>
                                     Done
                                 </button>
                             </div>
