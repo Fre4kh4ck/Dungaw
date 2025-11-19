@@ -13,7 +13,7 @@ import path from 'path';
 import { OAuth2Client } from 'google-auth-library';
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 import jwt from 'jsonwebtoken';
-import sgMail from '@sendgrid/mail';
+import nodemailer from 'nodemailer';
 import qr from 'qrcode';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -23,7 +23,16 @@ const port = 4435;
 
 server.use(express.json());
 server.use(express.urlencoded({ extended: false }));
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
+const transporter = nodemailer.createTransporter({
+  host: process.env.SMTP_HOST,
+  port: process.env.SMTP_PORT || 587,
+  secure: process.env.SMTP_PORT == 465,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
 
 server.use(cors({
   origin: [process.env.APP_URL],
@@ -76,7 +85,7 @@ server.post("/verify-ticket", async (req, res) => {
       try {
         const msg = {
           to: ticket.user_email,
-          from: 'jmmvenegas@antiquespride.edu.ph', // Your verified sender
+          from: process.env.SMTP_FROM,
           subject: `Scan Confirmation: ${ticket.event_name}`,
           html: `
             <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
@@ -91,9 +100,9 @@ server.post("/verify-ticket", async (req, res) => {
             </div>
           `,
         };
-        await sgMail.send(msg);
+        await transporter.sendMail(msg);
       } catch (emailError) {
-        console.error("Failed to send TIME IN email:", emailError.response?.body || emailError);
+        console.error("Failed to send TIME IN email:", emailError);
       }
 
       return res.json({
@@ -111,7 +120,7 @@ server.post("/verify-ticket", async (req, res) => {
       try {
         const msg = {
           to: ticket.user_email,
-          from: 'jmmvenegas@antiquespride.edu.ph', // Your verified sender
+          from: process.env.SMTP_FROM,
           subject: `Scan Confirmation: ${ticket.event_name}`,
           html: `
             <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
@@ -126,9 +135,9 @@ server.post("/verify-ticket", async (req, res) => {
             </div>
           `,
         };
-        await sgMail.send(msg);
+        await transporter.sendMail(msg);
       } catch (emailError) {
-        console.error("Failed to send TIME OUT email:", emailError.response?.body || emailError);
+        console.error("Failed to send TIME OUT email:", emailError);
       }
 
       return res.json({
@@ -378,26 +387,26 @@ server.post("/join-event", async (req, res) => {
     try {
       const msg = {
         to: email,
-        from: 'jmmvenegas@antiquespride.edu.ph', // Your verified sender
+        from: process.env.SMTP_FROM,
         subject: `Ticket: ${eventName}`,
         html: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 10px;">
                   <h2 style="color: #711212; text-align: center;">Event Registration Confirmed!</h2>
                   <p>Hello,</p>
                   <p>You have successfully joined <strong>${eventName}</strong>.</p>
-                  
+
                   <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                    <p style="margin: 5px 0;"><strong>📅 Date:</strong> ${dateDisplay}</p> 
+                    <p style="margin: 5px 0;"><strong>📅 Date:</strong> ${dateDisplay}</p>
                     <p style="margin: 5px 0;"><strong>📍 Venue:</strong> ${venueDisplay}</p>
                   </div>
-                  
+
                   <hr>
                   <div style="text-align: center; margin: 20px 0;">
                       <p><strong>Show this QR code at the entrance:</strong></p>
                       <img src="cid:eventqrcode" alt="Your Event QR Code" style="width: 200px; height: 200px;" />
                   </div>
                   <hr>
-                  
+
                   <p style="text-align: center; font-size: 12px; color: #888;">
                       University of Antique Event Management<br>
                       Sibalom Main Campus
@@ -410,15 +419,16 @@ server.post("/join-event", async (req, res) => {
             filename: 'qrcode.png',
             type: 'image/png',
             disposition: 'inline',
-            content_id: 'eventqrcode' // This ID links the image in HTML to this attachment
+            contentId: 'eventqrcode', // Note: contentId instead of content_id
+            encoding: 'base64'
           }
         ]
       };
 
-      await sgMail.send(msg);
+      await transporter.sendMail(msg);
 
     } catch (emailError) {
-      console.error("Email failed to send:", emailError.response?.body || emailError);
+      console.error("Email failed to send:", emailError);
       // We don't return an error here because the DB insert was successful.
       // The user can still access the ticket via the web app.
     }
