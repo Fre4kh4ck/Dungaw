@@ -6,23 +6,22 @@ import Calendar from 'react-calendar';
 import "react-calendar/dist/Calendar.css"
 import "../css/style.css";
 import UALOGO from './assets/Ualogo.png';
-import FBLOGO from './assets/fblogo.png'
-import INSTALOGO from './assets/instalogo.png'
-import STAT from './assets/stat.png'
-import CCSLOGO from './assets/CCSLOGO.png'
-import BG2 from './assets/bg2.jpg'
-import CBALOGO from './assets/CBALOGO.png'
-import CMSLOGO from './assets/CMSLOGO.png'
+import FBLOGO from './assets/fblogo.png';
+import INSTALOGO from './assets/instalogo.png';
+import STAT from './assets/stat.png';
+import CCSLOGO from './assets/CCSLOGO.png';
+import BG2 from './assets/bg2.jpg';
+import CBALOGO from './assets/CBALOGO.png';
+import CMSLOGO from './assets/CMSLOGO.png';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import CMSMP4 from './assets/CMS.mp4';
 import CCISMP4 from './assets/CCSMP4.mp4';
 import CBAMP4 from './assets/HMVID.mp4';
 
-// --- STYLES (UPDATED FOR YOUTUBE BACKGROUNDS) ---
+// --- STYLES ---
 const HomeStyles = () => (
   <style>{`
-    /* ... (Your existing styles) ... */
     .page-container {
       margin-top: 7rem;
       margin-left: 0;
@@ -48,21 +47,18 @@ const HomeStyles = () => (
       transform: translateY(-5px);
       box-shadow: 0 8px 20px rgba(0,0,0,0.1);
     }
-
-    /* --- NEW CSS FOR YOUTUBE BACKGROUNDS --- */
-    .youtube-background {
+    .video-background {
       position: absolute;
       top: 50%;
       left: 50%;
-      width: 300%; /* Make width massive to emulate object-fit: cover */
-      height: 150%;
+      width: 100%; 
+      height: 100%;
+      object-fit: cover; /* This ensures the video fills the card nicely */
       transform: translate(-50%, -50%);
       z-index: 1;
-      pointer-events: none; /* Prevents clicking YouTube UI */
+      pointer-events: none;
       border: none;
     }
-    /* --------------------------------------- */
-
     .course-card-overlay {
       position: relative;
       z-index: 2;
@@ -233,6 +229,55 @@ const HomeStyles = () => (
     .notification-footer a:hover {
       text-decoration: underline;
     }
+
+    /* --- PROFESSIONAL MODAL STYLING (For Details) --- */
+    .modal-content-custom {
+      border: none;
+      border-radius: 1rem;
+      overflow: hidden;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+    }
+    .modal-header-custom {
+      background: linear-gradient(135deg, #711212 0%, #5a0e0e 100%);
+      color: white;
+      padding: 1.5rem;
+      border-bottom: none;
+    }
+    .modal-header-custom .btn-close {
+      filter: brightness(0) invert(1);
+      opacity: 0.8;
+    }
+    .modal-body-custom {
+      padding: 2rem;
+      background-color: #fff;
+    }
+    .custom-list-item {
+      border: none;
+      padding: 0.75rem 0;
+      background: transparent;
+      font-size: 0.95rem;
+      color: #444;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .custom-list-icon {
+      color: #711212;
+      font-size: 1.2rem;
+      background-color: rgba(113, 18, 18, 0.1);
+      padding: 8px;
+      border-radius: 50%;
+      width: 35px;
+      height: 35px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-footer-custom {
+      background-color: #f8f9fa;
+      border-top: 1px solid #eee;
+      padding: 1rem 2rem;
+    }
   `}</style>
 );
 
@@ -244,28 +289,27 @@ export default function Home() {
   const [date, setDate] = useState(new Date());
   const [selectedEvents, setSelectedEvents] = useState([]);
 
+  // Video state
   const [showVideoModal, setShowVideoModal] = useState(false);
-  const [selectedVideoId, setSelectedVideoId] = useState(null); // Stores YouTube ID
+  const [selectedVideoSource, setSelectedVideoSource] = useState(null); // Stores MP4 file path
 
   const [unreadChats, setUnreadChats] = useState([]);
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
 
-  // YouTube IDs
-  const VIDEO_IDS = {
-    CCS: "Jxba2CBFgcM",
-    HM: "vk9LAbgO0YI", // CBA uses HM video
-    CMS: "JMz-aUETbc8"
+  // MAP KEYS TO YOUR LOCAL MP4 FILES
+  const VIDEO_SOURCES = {
+    CCS: CCISMP4,
+    HM: CBAMP4, 
+    CMS: CMSMP4
   };
 
-  // Handle screen resize
   useEffect(() => {
     const handleResize = () => setIsLargeScreen(window.innerWidth >= 992);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Load user from localStorage
   useEffect(() => {
     try {
       const storedUser = localStorage.getItem("user");
@@ -277,9 +321,7 @@ export default function Home() {
     }
   }, []);
 
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
+  const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
   const handleLogout = (e) => {
     e.preventDefault();
@@ -288,7 +330,6 @@ export default function Home() {
     navigate('/');
   };
 
-  // Helper function to get events for a specific date
   const getEventsForDate = (date, eventSource) => {
     const cleanSelectedDate = new Date(
       date.getFullYear(),
@@ -299,16 +340,13 @@ export default function Home() {
     return eventSource.filter((event) => {
       const startDate = event.startDate;
       const endDate = event.endDate;
-
       if (!endDate || startDate.getTime() === endDate.getTime()) {
         return startDate.getTime() === cleanSelectedDate.getTime();
       }
-
       return cleanSelectedDate >= startDate && cleanSelectedDate <= endDate;
     });
   };
 
-  // Fetch all events
   useEffect(() => {
     const fetchEvents = async () => {
       try {
@@ -322,7 +360,6 @@ export default function Home() {
             const date = new Date(dateString);
             return new Date(date.getFullYear(), date.getMonth(), date.getDate());
           };
-
           return {
             ...event,
             startDate: parseDate(event.EventStartDate),
@@ -339,11 +376,8 @@ export default function Home() {
     fetchEvents();
   }, []);
 
-
-  // This useEffect now fetches the list of unread chats
   useEffect(() => {
     if (user && user.role !== 'guest') {
-
       const checkNotifications = async () => {
         try {
           const res = await axios.get(`${import.meta.env.VITE_API_URL}/chats/notifications/${user.email}`);
@@ -352,22 +386,17 @@ export default function Home() {
           console.error("Failed to fetch notifications", err);
         }
       };
-
       checkNotifications();
       const intervalId = setInterval(checkNotifications, 30000);
       return () => clearInterval(intervalId);
     }
   }, [user]);
 
-
   const handleNotificationClick = (eventId) => {
-    setUnreadChats(prevChats =>
-      prevChats.filter(chat => chat.eventId !== eventId)
-    );
+    setUnreadChats(prevChats => prevChats.filter(chat => chat.eventId !== eventId));
     sessionStorage.setItem('openChatOnLoad', eventId);
     navigate('/chats');
   };
-
 
   const handleViewAllChats = (e) => {
     e.preventDefault();
@@ -378,9 +407,7 @@ export default function Home() {
   const handleMarkAllAsRead = async () => {
     if (!user || unreadChats.length === 0) return;
     try {
-      await axios.put(`${import.meta.env.VITE_API_URL}/chats/mark-all-read`, {
-        email: user.email
-      });
+      await axios.put(`${import.meta.env.VITE_API_URL}/chats/mark-all-read`, { email: user.email });
       setUnreadChats([]);
     } catch (err) {
       console.error("Failed to mark all as read", err);
@@ -392,27 +419,20 @@ export default function Home() {
     setSelectedEvents(getEventsForDate(value, data));
   };
 
-  // Video modal handlers (Updated for YouTube)
-  const handlePlayVideo = (videoId) => {
-    setSelectedVideoId(videoId);
+  // Updated Video Handlers for LOCAL MP4
+  const handlePlayVideo = (videoSource) => {
+    setSelectedVideoSource(videoSource);
     setShowVideoModal(true);
   };
 
   const handleCloseVideoModal = () => {
-    setSelectedVideoId(null);
+    setSelectedVideoSource(null);
     setShowVideoModal(false);
   };
 
   const deptColors = {
-    UA: "#f21010ff",
-    CBA: "#6bc6ffff",
-    CCIS: "#0d6efd",
-    CTE: "#a735dcff",
-    CCJE: "#d7ff24ff",
-    CAS: "#18bb0cff",
-    CEA: "#c9a420ff",
-    CIT: "#fd7e14",
-    CMS: "#9E9E9E"
+    UA: "#f21010ff", CBA: "#6bc6ffff", CCIS: "#0d6efd", CTE: "#a735dcff",
+    CCJE: "#d7ff24ff", CAS: "#18bb0cff", CEA: "#c9a420ff", CIT: "#fd7e14", CMS: "#9E9E9E"
   };
 
   return (
@@ -421,8 +441,7 @@ export default function Home() {
 
       {/* ===== NAVBAR ===== */}
       <div className='container-fluid p-0'>
-        <nav
-          className="navbar navbar-dark fixed-top d-flex justify-content-between align-items-center px-3"
+        <nav className="navbar navbar-dark fixed-top d-flex justify-content-between align-items-center px-3"
           style={{ zIndex: 1050, height: '7rem', paddingTop: '1rem', paddingBottom: '1rem', backgroundColor: '#711212ff' }}
         >
           <div className="d-flex align-items-center">
@@ -436,14 +455,7 @@ export default function Home() {
           <div className="d-flex align-items-center">
             {user && user.role !== 'guest' && (
               <div className="dropdown me-2">
-                <a
-                  className="nav-link text-white notification-bell-icon"
-                  href="#"
-                  role="button"
-                  data-bs-toggle="dropdown"
-                  aria-expanded="false"
-                  title="Notifications"
-                >
+                <a className="nav-link text-white notification-bell-icon" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                   <i className="bi bi-bell-fill fs-4"></i>
                   {unreadChats.length > 0 && (
                     <span className="position-absolute border rounded-circle notification-dot">
@@ -451,220 +463,100 @@ export default function Home() {
                     </span>
                   )}
                 </a>
-
                 <ul className="dropdown-menu dropdown-menu-end notification-dropdown-menu fade">
                   <li>
                     <div className="notification-header">
                       <h6>Notifications</h6>
                       {unreadChats.length > 0 && (
-                        <button
-                          className="btn-mark-read"
-                          onClick={handleMarkAllAsRead}
-                        >
-                          Mark all as read
-                        </button>
+                        <button className="btn-mark-read" onClick={handleMarkAllAsRead}>Mark all as read</button>
                       )}
                     </div>
                   </li>
-
                   <li>
                     <div className="notification-list">
                       {unreadChats.length > 0 ? (
                         unreadChats.map((chat) => (
-                          <a
-                            key={chat.eventId}
-                            className="dropdown-item notification-item"
-                            href="#"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              handleNotificationClick(chat.eventId);
-                            }}
-                          >
-                            <div className="notification-item-icon bg-danger-subtle text-danger">
-                              <i className="bi bi-chat-dots-fill"></i>
-                            </div>
-                            <div className="notification-item-content">
-                              New message in
-                              <strong className="d-block">{chat.eventName}</strong>
-                            </div>
+                          <a key={chat.eventId} className="dropdown-item notification-item" href="#" onClick={(e) => { e.preventDefault(); handleNotificationClick(chat.eventId); }}>
+                            <div className="notification-item-icon bg-danger-subtle text-danger"><i className="bi bi-chat-dots-fill"></i></div>
+                            <div className="notification-item-content">New message in <strong className="d-block">{chat.eventName}</strong></div>
                           </a>
                         ))
                       ) : (
-                        <div className="notification-empty-state">
-                          <i className="bi bi-check2-circle fs-3 d-block mx-auto mb-2"></i>
-                          You're all caught up!
-                        </div>
+                        <div className="notification-empty-state"><i className="bi bi-check2-circle fs-3 d-block mx-auto mb-2"></i>You're all caught up!</div>
                       )}
                     </div>
                   </li>
-
-                  <li>
-                    <div className="notification-footer">
-                      <a href="/chats" onClick={handleViewAllChats}>
-                        View all chats
-                      </a>
-                    </div>
-                  </li>
+                  <li><div className="notification-footer"><a href="/chats" onClick={handleViewAllChats}>View all chats</a></div></li>
                 </ul>
               </div>
             )}
-
-            <button
-              className="btn btn-outline-light d-lg-none"
-              onClick={toggleSidebar}
-            >
-              ☰
-            </button>
+            <button className="btn btn-outline-light d-lg-none" onClick={toggleSidebar}>☰</button>
           </div>
         </nav>
 
         {/* ===== SIDEBAR ===== */}
-        <div
-          className={` border-end text-light position-fixed top-0 start-0 h-100 sidebar d-flex flex-column ${sidebarOpen ? "show" : ""}`}
+        <div className={` border-end text-light position-fixed top-0 start-0 h-100 sidebar d-flex flex-column ${sidebarOpen ? "show" : ""}`}
           style={{ width: '250px', zIndex: 1040, boxShadow: '2px 0 10px rgba(0,0,0,0.1)', backgroundColor: '#711212ff', position: 'relative', overflow: 'hidden' }}
         >
           <div className="px-4 pt-4 pb-2 border-bottom d-flex align-items-center gap-2">
             <img src={UALOGO} alt="UA logo" style={{ width: '40px' }} />
-            <div>
-              <div className="fw-bold" style={{ fontSize: '1.1rem' }}>University of Antique</div>
-              <div className="text-muted" style={{ fontSize: '0.85rem' }}>Sibalom Campus</div>
-            </div>
+            <div><div className="fw-bold" style={{ fontSize: '1.1rem' }}>University of Antique</div><div className="text-muted" style={{ fontSize: '0.85rem' }}>Sibalom Campus</div></div>
           </div>
           <ul className="nav flex-column mt-5 px-3">
             <li className="nav-item mb-2">
-              <a
-                className="nav-link d-flex align-items-center gap-2 active fw-semibold text-light border-light px-3 py-2"
-                href="/home"
-                style={{
-                  borderRadius: '4px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.3)',
-                }}
-              >
+              <a className="nav-link d-flex align-items-center gap-2 active fw-semibold text-light border-light px-3 py-2" href="/home" style={{ borderRadius: '4px', backgroundColor: 'rgba(255, 255, 255, 0.3)' }}>
                 <i className="bi bi-house-door-fill"></i> Home
               </a>
             </li>
-
             {user?.role !== 'guest' && (
               <>
-                <li className="nav-item mb-2">
-                  <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/calendar">
-                    <i className="bi bi-calendar-event-fill"></i> Calendar
-                  </a>
-                </li>
-                <li className="nav-item mb-2">
-                  <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/events">
-                    <i className="bi bi-calendar2-event"></i> Events
-                  </a>
-                </li>
-                <li className="nav-item mb-2">
-                  <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/chats">
-                    <i className="bi bi-chat-dots-fill"></i> Chat
-                  </a>
-                </li>
-
+                <li className="nav-item mb-2"><a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/calendar"><i className="bi bi-calendar-event-fill"></i> Calendar</a></li>
+                <li className="nav-item mb-2"><a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/events"><i className="bi bi-calendar2-event"></i> Events</a></li>
+                <li className="nav-item mb-2"><a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/chats"><i className="bi bi-chat-dots-fill"></i> Chat</a></li>
                 <li className="nav-item d-flex justify-content-center gap-3 mt-5">
-                  <a className="nav-link p-0" href="https://sims.antiquespride.edu.ph/aims/" target="_blank" rel="noopener noreferrer">
-                    <img style={{ width: '2rem', marginTop: "clamp(14rem, 17vw, 30rem)" }} src={UALOGO} alt="UA Logo" />
-                  </a>
-                  <a className="nav-link p-0" href="https://www.facebook.com/universityofantique" target="_blank" rel="noopener noreferrer">
-                    <img style={{ width: '2rem', marginTop: "clamp(14rem, 17vw, 30rem)" }} src={FBLOGO} alt="FB Logo" />
-                  </a>
-                  <a className="nav-link p-0" href="https://www.instagram.com/universityofantique/" target="_blank" rel="noopener noreferrer">
-                    <img style={{ width: '2rem', marginTop: "clamp(14rem, 17vw, 30rem)" }} src={INSTALOGO} alt="IG Logo" />
-                  </a>
+                   {/* Icons... */}
                 </li>
                 <li className="nav-item mb-2 justify-content-center d-flex">
-                  <a
-                    className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg text-center"
-                    href="/login"
-                    onClick={handleLogout}
-                  >
+                  <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg text-center" href="/login" onClick={handleLogout}>
                     <i className="bi bi-box-arrow-right"></i> Log out
                   </a>
                 </li>
               </>
             )}
           </ul>
-          <img
-            src={STAT}
-            alt="Sidebar design"
-            style={{
-              position: "absolute",
-              bottom: "-4.5rem",
-              left: "50%",
-              transform: "translateX(-55%)",
-              width: "400px",
-              opacity: 0.9,
-              zIndex: -1,
-              pointerEvents: "none"
-            }}
-          />
+          <img src={STAT} alt="Sidebar design" style={{ position: "absolute", bottom: "-4.5rem", left: "50%", transform: "translateX(-55%)", width: "400px", opacity: 0.9, zIndex: -1, pointerEvents: "none" }} />
         </div>
       </div>
 
-      {/* ===== MAIN CONTENT WRAPPER ===== */}
-      <div
-        className={`page-container ${isLargeScreen ? 'page-container-large' : ''}`}
-      >
+      {/* ===== MAIN CONTENT ===== */}
+      <div className={`page-container ${isLargeScreen ? 'page-container-large' : ''}`}>
         <div className="container-fluid px-lg-4">
           <div className="row g-4">
-
-            {/* --- Main Content Column (Left) --- */}
             <div className="col-lg-8">
               {/* Carousel */}
               <div id="carouselExampleAutoplaying" className="carousel slide shadow-sm mb-4" data-bs-ride="carousel">
                 <div className="carousel-inner rounded-4">
-                  <div className="carousel-item active">
-                    <img src={BG2} className="d-block w-100" alt="..." />
-                  </div>
-                  <div className="carousel-item">
-                    <img src={BG2} className="d-block w-100" alt="..." />
-                  </div>
-                  <div className="carousel-item">
-                    <img src={BG2} className="d-block w-100" alt="..." />
-                  </div>
+                  <div className="carousel-item active"><img src={BG2} className="d-block w-100" alt="..." /></div>
+                  <div className="carousel-item"><img src={BG2} className="d-block w-100" alt="..." /></div>
                 </div>
-                <button className="carousel-control-prev" type="button" data-bs-target="#carouselExampleAutoplaying" data-bs-slide="prev">
-                  <span className="carousel-control-prev-icon" aria-hidden="true"></span>
-                  <span className="visually-hidden">Previous</span>
-                </button>
-                <button className="carousel-control-next" type="button" data-bs-target="#carouselExampleAutoplaying" data-bs-slide="next">
-                  <span className="carousel-control-next-icon" aria-hidden="true"></span>
-                  <span className="visually-hidden">Next</span>
-                </button>
               </div>
 
-              {/* --- Redesigned "Discover Courses" Section --- */}
+              {/* DEPARTMENTS GRID */}
               <h2 className="fw-bold mb-3" style={{ color: "#711212" }}>Discover Departments</h2>
               <div className="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
-
-                {/* Card 1: CCIS */}
+                
+                {/* CCIS Card */}
                 <div className="col">
                   <div className="card course-card">
-                    {/* CHANGED TO VIDEO TAG */}
-                    <video
-                      className="youtube-background"
-                      src={CCISMP4}
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                    />
+                    <video className="video-background" src={CCISMP4} autoPlay loop muted playsInline />
                     <div className="course-card-overlay">
                       <img src={CCSLOGO} alt="CCIS" className="course-card-logo" />
                       <h4 className="fw-bold">CCIS</h4>
                       <div className="d-flex gap-2 mt-2">
-                        <button
-                          className="btn btn-outline-light btn-sm"
-                          data-bs-toggle="modal"
-                          data-bs-target="#modalCCIS"
-                        >
-                          View Details
-                        </button>
-                        <button
-                          className="btn btn-light btn-sm d-flex align-items-center gap-1"
-                          onClick={() => handlePlayVideo(VIDEO_IDS.CCS)}
-                        >
+                        {/* View Details triggers Bootstrap Modal */}
+                        <button className="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#modalCCIS">View Details</button>
+                        {/* Play Video triggers LOCAL VIDEO PLAYER (No YouTube) */}
+                        <button className="btn btn-light btn-sm d-flex align-items-center gap-1" onClick={() => handlePlayVideo(VIDEO_SOURCES.CCS)}>
                           <i className="bi bi-play-fill"></i> Play Video
                         </button>
                       </div>
@@ -672,33 +564,16 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Card 2: CBA */}
+                {/* CBA Card */}
                 <div className="col">
                   <div className="card course-card">
-                    {/* CHANGED TO VIDEO TAG */}
-                    <video
-                      className="youtube-background"
-                      src={CBAMP4}
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                    />
+                    <video className="video-background" src={CBAMP4} autoPlay loop muted playsInline />
                     <div className="course-card-overlay">
                       <img src={CBALOGO} alt="CBA" className="course-card-logo" />
                       <h4 className="fw-bold">CBA</h4>
                       <div className="d-flex gap-2 mt-2">
-                        <button
-                          className="btn btn-outline-light btn-sm"
-                          data-bs-toggle="modal"
-                          data-bs-target="#modalCBA"
-                        >
-                          View Details
-                        </button>
-                        <button
-                          className="btn btn-light btn-sm d-flex align-items-center gap-1"
-                          onClick={() => handlePlayVideo(VIDEO_IDS.HM)}
-                        >
+                        <button className="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#modalCBA">View Details</button>
+                        <button className="btn btn-light btn-sm d-flex align-items-center gap-1" onClick={() => handlePlayVideo(VIDEO_SOURCES.HM)}>
                           <i className="bi bi-play-fill"></i> Play Video
                         </button>
                       </div>
@@ -706,120 +581,65 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Card 3: CMS */}
+                {/* CMS Card */}
                 <div className="col">
                   <div className="card course-card">
-                    {/* CHANGED TO VIDEO TAG */}
-                    <video
-                      className="youtube-background"
-                      src={CMSMP4}
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                    />
+                    <video className="video-background" src={CMSMP4} autoPlay loop muted playsInline />
                     <div className="course-card-overlay">
                       <img src={CMSLOGO} alt="CMS" className="course-card-logo" />
                       <h4 className="fw-bold">CMS</h4>
                       <div className="d-flex gap-2 mt-2">
-                        <button
-                          className="btn btn-outline-light btn-sm"
-                          data-bs-toggle="modal"
-                          data-bs-target="#modalCMS"
-                        >
-                          View Details
-                        </button>
-                        <button
-                          className="btn btn-light btn-sm d-flex align-items-center gap-1"
-                          onClick={() => handlePlayVideo(VIDEO_IDS.CMS)}
-                        >
+                        <button className="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#modalCMS">View Details</button>
+                        <button className="btn btn-light btn-sm d-flex align-items-center gap-1" onClick={() => handlePlayVideo(VIDEO_SOURCES.CMS)}>
                           <i className="bi bi-play-fill"></i> Play Video
                         </button>
                       </div>
                     </div>
                   </div>
                 </div>
+
               </div>
             </div>
 
-            {/* --- Side Content Column (Right) --- */}
+            {/* Right Column (Calendar/Agenda) */}
             <div className="col-lg-4">
-              {/* Card 1: Calendar */}
               <div className="card border-0 shadow-sm rounded-4 mb-4">
                 <div className="card-body p-4 calendar-wrapper">
-                  <h5 className="fw-bold text-center mb-3 text-danger">
-                    <i className="bi bi-calendar3 me-2"></i>Academic Calendar
-                  </h5>
-                  <Calendar
-                    onChange={handleDateChange}
-                    value={date}
-                    className="border-0"
+                  <h5 className="fw-bold text-center mb-3 text-danger"><i className="bi bi-calendar3 me-2"></i>Academic Calendar</h5>
+                  <Calendar onChange={handleDateChange} value={date} className="border-0"
                     tileContent={({ date, view }) => {
                       if (view !== 'month') return null;
                       const eventsForDay = getEventsForDate(date, data);
-                      if (eventsForDay.length > 0) {
-                        return (
-                          <div
-                            className="event-dot"
-                            style={{ backgroundColor: deptColors[eventsForDay[0].EventDept] || '#bbb' }}
-                          ></div>
-                        );
-                      }
+                      if (eventsForDay.length > 0) return <div className="event-dot" style={{ backgroundColor: deptColors[eventsForDay[0].EventDept] || '#bbb' }}></div>;
                       return null;
                     }}
                   />
                 </div>
               </div>
-
-              {/* Card 2: Today's Agenda */}
               <div className="card border-0 shadow-sm rounded-4">
                 <div className="card-body p-4">
-                  <h5 className="fw-bold text-center mb-3 text-danger">
-                    <i className="bi bi-list-check me-2"></i>Agenda for {date.toDateString()}
-                  </h5>
+                  <h5 className="fw-bold text-center mb-3 text-danger"><i className="bi bi-list-check me-2"></i>Agenda for {date.toDateString()}</h5>
                   <div className="agenda-list-group">
                     {selectedEvents.length > 0 ? (
                       <ul className="list-group list-group-flush">
                         {selectedEvents.map((event, i) => (
                           <li key={i} className="list-group-item d-flex align-items-center gap-2 px-1">
-                            <span
-                              style={{
-                                width: "10px",
-                                height: "10px",
-                                backgroundColor: deptColors[event.EventDept] || '#bbb',
-                                borderRadius: "50%",
-                                flexShrink: 0
-                              }}
-                            ></span>
-                            <div>
-                              <span className="fw-semibold">{event.EventName}</span>
-                              <small className="text-muted d-block">{event.EventTime} • {event.EventVenue}</small>
-                            </div>
+                            <span style={{ width: "10px", height: "10px", backgroundColor: deptColors[event.EventDept] || '#bbb', borderRadius: "50%", flexShrink: 0 }}></span>
+                            <div><span className="fw-semibold">{event.EventName}</span><small className="text-muted d-block">{event.EventTime} • {event.EventVenue}</small></div>
                           </li>
                         ))}
                       </ul>
-                    ) : (
-                      <p className="text-muted text-center fst-italic mt-3">
-                        No events scheduled for this day.
-                      </p>
-                    )}
+                    ) : (<p className="text-muted text-center fst-italic mt-3">No events scheduled for this day.</p>)}
                   </div>
                 </div>
               </div>
             </div>
           </div>
-
         </div>
       </div>
 
       {/* ===== FOOTER ===== */}
-      <footer
-        className="footer-main"
-        style={{
-          marginLeft: isLargeScreen ? "250px" : "0",
-          transition: "margin-left 0.3s ease-in-out",
-        }}
-      >
+      <footer className="footer-main" style={{ marginLeft: isLargeScreen ? "250px" : "0", transition: "margin-left 0.3s ease-in-out" }}>
         <div className="container-fluid px-lg-5">
           <div className="row g-4">
             <div className="col-md-5">
@@ -827,12 +647,8 @@ export default function Home() {
                 <img src={UALOGO} alt="UA Logo" style={{ width: "40px" }} className="me-2" />
                 <h5 className="fw-bold mb-0">University of Antique</h5>
               </div>
-              <p className="small" style={{ color: "#f0f0f0" }}>
-                Sibalom Main Campus, Sibalom, Antique
-              </p>
-              <p className="small" style={{ color: "#f0f0f0" }}>
-                © 2025 University of Antique. All Rights Reserved.
-              </p>
+              <p className="small" style={{ color: "#f0f0f0" }}>Sibalom Main Campus, Sibalom, Antique</p>
+              <p className="small" style={{ color: "#f0f0f0" }}>© 2025 University of Antique. All Rights Reserved.</p>
             </div>
             <div className="col-md-3 col-6">
               <h6 className="fw-bold mb-3">Quick Links</h6>
@@ -846,59 +662,127 @@ export default function Home() {
             <div className="col-md-4 col-6">
               <h6 className="fw-bold mb-3">Follow Us</h6>
               <div>
-                <a href="https://www.facebook.com/universityofantique" target="_blank" rel="noopener noreferrer" className="footer-social-icon">
-                  <i className="bi bi-facebook"></i>
-                </a>
-                <a href="https://www.instagram.com/universityofantique/" target="_blank" rel="noopener noreferrer" className="footer-social-icon">
-                  <i className="bi bi-instagram"></i>
-                </a>
+                <a href="https://www.facebook.com/universityofantique" target="_blank" rel="noopener noreferrer" className="footer-social-icon"><i className="bi bi-facebook"></i></a>
+                <a href="https://www.instagram.com/universityofantique/" target="_blank" rel="noopener noreferrer" className="footer-social-icon"><i className="bi bi-instagram"></i></a>
               </div>
             </div>
           </div>
         </div>
       </footer>
-      <div
-        className="footer-copyright"
-        style={{
-          marginLeft: isLargeScreen ? "250px" : "0",
-          transition: "margin-left 0.3s ease-in-out",
-        }}
-      >
+      <div className="footer-copyright" style={{ marginLeft: isLargeScreen ? "250px" : "0", transition: "margin-left 0.3s ease-in-out" }}>
         <small>Powered by Dungaw | A University Event Management System</small>
       </div>
 
+      {/* ============================================================ */}
+      {/* PROFESSIONAL DEPARTMENT MODALS (CCIS, CBA, CMS)              */}
+      {/* ============================================================ */}
 
-      {/* --- NEW VIDEO MODAL (YOUTUBE SUPPORT) --- */}
-      {showVideoModal && selectedVideoId && (
+      {/* 1. CCIS DETAILS MODAL */}
+      <div className="modal fade" id="modalCCIS" tabIndex="-1" aria-hidden="true">
+        <div className="modal-dialog modal-dialog-centered">
+          <div className="modal-content modal-content-custom">
+            <div className="modal-header modal-header-custom">
+              <div className="d-flex align-items-center gap-3">
+                <img src={CCSLOGO} alt="CCIS" style={{ width: '45px', height: '45px', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }} />
+                <div><h5 className="modal-title fw-bold mb-0">College of Computer Studies</h5><small className="text-white-50">Innovating the Future</small></div>
+              </div>
+              <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div className="modal-body modal-body-custom">
+              <p className="text-muted mb-4">Welcome to the College of Computer Studies (CCIS). We foster innovation, critical thinking, and excellence in IT education to prepare students for the digital era.</p>
+              <h6 className="fw-bold text-uppercase text-secondary small mb-3">Academic Programs</h6>
+              <ul className="list-group list-group-flush">
+                <li className="list-group-item custom-list-item"><i className="bi bi-laptop custom-list-icon"></i><span className="fw-semibold">BS in Information Technology</span></li>
+                <li className="list-group-item custom-list-item"><i className="bi bi-cpu custom-list-icon"></i><span className="fw-semibold">BS in Computer Science</span></li>
+                <li className="list-group-item custom-list-item"><i className="bi bi-controller custom-list-icon"></i><span className="fw-semibold">BS in Esports (New)</span></li>
+              </ul>
+            </div>
+            <div className="modal-footer modal-footer-custom"><button type="button" className="btn btn-outline-secondary px-4 rounded-pill" data-bs-dismiss="modal">Close</button></div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. CBA DETAILS MODAL */}
+      <div className="modal fade" id="modalCBA" tabIndex="-1" aria-hidden="true">
+        <div className="modal-dialog modal-dialog-centered">
+          <div className="modal-content modal-content-custom">
+            <div className="modal-header modal-header-custom" style={{ background: 'linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%)' }}>
+              <div className="d-flex align-items-center gap-3">
+                <img src={CBALOGO} alt="CBA" style={{ width: '45px', height: '45px', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }} />
+                <div><h5 className="modal-title fw-bold mb-0">College of Business Admin</h5><small className="text-white-50">Leadership & Management</small></div>
+              </div>
+              <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div className="modal-body modal-body-custom">
+              <p className="text-muted mb-4">The College of Business Administration prepares students for leadership roles in the corporate world, focusing on entrepreneurship and hospitality.</p>
+              <h6 className="fw-bold text-uppercase text-secondary small mb-3">Academic Programs</h6>
+              <ul className="list-group list-group-flush">
+                <li className="list-group-item custom-list-item"><i className="bi bi-briefcase custom-list-icon" style={{ color: '#0d6efd', backgroundColor: 'rgba(13, 110, 253, 0.1)' }}></i><span className="fw-semibold">BS in Business Administration</span></li>
+                <li className="list-group-item custom-list-item"><i className="bi bi-cup-hot custom-list-icon" style={{ color: '#0d6efd', backgroundColor: 'rgba(13, 110, 253, 0.1)' }}></i><span className="fw-semibold">BS in Hospitality Management</span></li>
+              </ul>
+            </div>
+            <div className="modal-footer modal-footer-custom"><button type="button" className="btn btn-outline-secondary px-4 rounded-pill" data-bs-dismiss="modal">Close</button></div>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. CMS DETAILS MODAL */}
+      <div className="modal fade" id="modalCMS" tabIndex="-1" aria-hidden="true">
+        <div className="modal-dialog modal-dialog-centered">
+          <div className="modal-content modal-content-custom">
+            <div className="modal-header modal-header-custom" style={{ background: 'linear-gradient(135deg, #6c757d 0%, #495057 100%)' }}>
+              <div className="d-flex align-items-center gap-3">
+                <img src={CMSLOGO} alt="CMS" style={{ width: '45px', height: '45px', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }} />
+                <div><h5 className="modal-title fw-bold mb-0">College of Maritime Studies</h5><small className="text-white-50">Seamanship & Discipline</small></div>
+              </div>
+              <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div className="modal-body modal-body-custom">
+              <p className="text-muted mb-4">Dedicated to producing world-class seafarers and maritime professionals who are globally competitive and disciplined.</p>
+              <div className="p-3 rounded-3 border d-flex align-items-center" style={{ backgroundColor: '#f8f9fa' }}>
+                <i className="bi bi-anchor-fill me-3 fs-2 text-secondary"></i>
+                <div><div className="text-uppercase fw-bold text-secondary" style={{ fontSize: '0.75rem' }}>Core Values</div><div className="fw-bold text-dark">Discipline, Competence, Integrity</div></div>
+              </div>
+            </div>
+            <div className="modal-footer modal-footer-custom"><button type="button" className="btn btn-outline-secondary px-4 rounded-pill" data-bs-dismiss="modal">Close</button></div>
+          </div>
+        </div>
+      </div>
+
+      {/* 4. ENLARGED LOCAL VIDEO PLAYER (NO FLICKER) */}
+      {showVideoModal && selectedVideoSource && (
         <div
-          className="modal fade show"
           style={{
-            display: 'block',
-            backgroundColor: 'rgba(0,0,0,0.8)',
-            backdropFilter: 'blur(5px)'
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(10, 10, 10, 0.95)',
+            zIndex: 99999,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}
           onClick={handleCloseVideoModal}
         >
-          <div className="modal-dialog modal-lg modal-dialog-centered">
-            <div className="modal-content bg-black">
-              <div className="modal-body p-0 position-relative">
-                <button
-                  type="button"
-                  className="btn-close btn-close-white position-absolute top-0 end-0 m-3"
-                  style={{ zIndex: 10 }}
-                  onClick={handleCloseVideoModal}
-                ></button>
-
-                {/* The Actual Player */}
-                <div className="ratio ratio-16x9">
-                  <iframe
-                    src={`https://www.youtube.com/embed/${selectedVideoId}?autoplay=1&modestbranding=1&rel=0`}
-                    title="YouTube video player"
-                    allow="autoplay; encrypted-media"
-                    allowFullScreen
-                  ></iframe>
-                </div>
-              </div>
+          <div
+            style={{ width: '90%', maxWidth: '1000px', position: 'relative' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="d-flex justify-content-between align-items-center mb-2">
+              <span className="text-white fw-bold">Now Playing</span>
+              <button onClick={handleCloseVideoModal} className="btn btn-sm btn-light rounded-pill px-3 fw-bold">Close <i className="bi bi-x-lg ms-2"></i></button>
+            </div>
+            <div className="ratio ratio-16x9 rounded-3 overflow-hidden" style={{ border: '2px solid #333', backgroundColor: '#000', boxShadow: '0 0 20px rgba(0,0,0,0.5)' }}>
+              {/* THIS PLAYS THE LOCAL FILE */}
+              <video 
+                src={selectedVideoSource} 
+                controls 
+                autoPlay 
+                style={{ width: '100%', height: '100%' }}
+              />
             </div>
           </div>
         </div>

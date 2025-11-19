@@ -125,7 +125,12 @@ export default function Chats() {
     if (currentUserEmail) {
       axios.get(`${import.meta.env.VITE_API_URL}/my-chats/${currentUserEmail}`)
         .then(res => {
+          // Handle nested array or flat array
           const events = Array.isArray(res.data[0]) ? res.data[0] : res.data;
+          
+          // DEBUG: Check this in your browser console (F12) to see correct property names
+          console.log("Fetched Events Data:", events); 
+          
           setJoinedEvents(events);
         })
         .catch(err => console.error("Chat list error:", err));
@@ -143,36 +148,35 @@ export default function Chats() {
   useEffect(() => {
     let poll;
     if (activeChatEvent) {
-      fetchMessages(activeChatEvent.EventID); // Fetch immediately
-      poll = setInterval(() => fetchMessages(activeChatEvent.EventID), 2000); // Then poll
+      // Helper to get ID safely
+      const id = activeChatEvent.EventID || activeChatEvent.event_id;
+      fetchMessages(id); 
+      poll = setInterval(() => fetchMessages(id), 2000);
     }
     return () => {
       if (poll) clearInterval(poll);
     };
   }, [activeChatEvent]);
 
-  // 🔴 NEW: This useEffect checks for an eventId from session storage
+  // Check for session storage event on load
   useEffect(() => {
-    // Only run this if we are on a large screen AND the event list has loaded
     if (isLargeScreen && joinedEvents.length > 0) {
       const eventIdToOpen = sessionStorage.getItem('openChatOnLoad');
 
       if (eventIdToOpen) {
-        // Find the event in our list
-        const eventToOpen = joinedEvents.find(e => e.EventID === parseInt(eventIdToOpen));
+        // Helper check for both ID styles
+        const eventToOpen = joinedEvents.find(e => 
+          (e.EventID || e.event_id) === parseInt(eventIdToOpen)
+        );
 
         if (eventToOpen) {
-          // If we found it, open it
           handleViewChat(eventToOpen);
-          // CRITICAL: Remove the item so it doesn't re-open on refresh
           sessionStorage.removeItem('openChatOnLoad');
         } else {
-          // Cleanup if the eventId was invalid or user is no longer in that chat
           sessionStorage.removeItem('openChatOnLoad');
         }
       }
     }
-    // We depend on joinedEvents to make sure the list is ready to be searched
   }, [joinedEvents, isLargeScreen]);
 
   const fetchMessages = async (eventId) => {
@@ -184,33 +188,38 @@ export default function Chats() {
     }
   };
 
-  // 🔴 This function now marks chats as read
   const handleViewChat = (event) => {
+    // Safely get ID
+    const eventId = event.EventID || event.event_id;
+
     const markAsRead = () => {
       axios.put(`${import.meta.env.VITE_API_URL}/chats/mark-read`, {
         email: currentUserEmail,
-        eventId: event.EventID
+        eventId: eventId
       }).catch(err => console.error("Failed to mark as read", err));
     };
 
     if (isLargeScreen) {
       setActiveChatEvent(event);
-      markAsRead(); // Mark as read for desktop view
+      markAsRead();
     } else {
-      markAsRead(); // Mark as read before navigating
-      navigate(`/chatroom/${event.EventID}`);
+      markAsRead();
+      navigate(`/chatroom/${eventId}`);
     }
   };
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !activeChatEvent) return;
+    
+    const eventId = activeChatEvent.EventID || activeChatEvent.event_id;
+
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/chatroom/${activeChatEvent.EventID}`, {
+      await axios.post(`${import.meta.env.VITE_API_URL}/chatroom/${eventId}`, {
         user_email: currentUserEmail,
         message_content: newMessage.trim()
       });
       setNewMessage("");
-      fetchMessages(activeChatEvent.EventID);
+      fetchMessages(eventId);
     } catch (err) {
       console.error("Error sending message:", err);
       alert("Failed to send message.");
@@ -220,6 +229,18 @@ export default function Chats() {
   const handleCloseActiveChat = () => {
     setActiveChatEvent(null);
     setMessages([]);
+  };
+
+  // --- HELPER TO SAFELY GET DATA REGARDLESS OF CASE ---
+  // This solves the "Undefined Name/Image" issue
+  const getEventData = (event) => {
+    return {
+        id: event.EventID || event.event_id,
+        name: event.EventName || event.event_name || "Unknown Event",
+        photo: event.EventPhoto || event.event_photo,
+        venue: event.EventVenue || event.event_venue,
+        date: event.EventDate || event.event_date
+    };
   };
 
   return (
@@ -332,25 +353,33 @@ export default function Chats() {
               <div className="chat-list-body">
                 {joinedEvents.length > 0 ? (
                   <div className="list-group list-group-flush">
-                    {joinedEvents.map((event, i) => (
-                      <a
-                        key={i}
-                        className={`list-group-item list-group-item-action chat-list-item ${activeChatEvent?.EventID === event.EventID ? 'active' : ''}`}
-                        onClick={() => handleViewChat(event)}
-                      >
-                        <div className="d-flex align-items-center">
-                          <img
-                            src={`${import.meta.env.VITE_API_URL}/api/upload/${event.EventPhoto}`}
-                            className="rounded-circle me-3 chat-avatar"
-                            alt={event.EventName}
-                          />
-                          <div className="flex-grow-1">
-                            <div className="fw-bold text-truncate">{event.EventName}</div>
-                            <small className="text-muted text-truncate">{event.EventVenue}</small>
+                    {joinedEvents.map((event, i) => {
+                      const data = getEventData(event); // Get safe data
+                      // Determine if this event is the active one
+                      const isActive = activeChatEvent && 
+                        (activeChatEvent.EventID === data.id || activeChatEvent.event_id === data.id);
+
+                      return (
+                        <a
+                          key={i}
+                          className={`list-group-item list-group-item-action chat-list-item ${isActive ? 'active' : ''}`}
+                          onClick={() => handleViewChat(event)}
+                        >
+                          <div className="d-flex align-items-center">
+                            <img
+                              src={data.photo ? `${import.meta.env.VITE_API_URL}/api/upload/${data.photo}` : "https://via.placeholder.com/50"}
+                              className="rounded-circle me-3 chat-avatar"
+                              alt={data.name}
+                              onError={(e) => { e.target.src = "https://via.placeholder.com/50"; }} // Fallback if image fails
+                            />
+                            <div className="flex-grow-1">
+                              <div className="fw-bold text-truncate">{data.name}</div>
+                              <div className="text-truncate" style={{ fontSize: "0.8rem" }}>{data.venue}</div>
+                            </div>
                           </div>
-                        </div>
-                      </a>
-                    ))}
+                        </a>
+                      );
+                    })}
                   </div>
                 ) : (
                   <p className="text-center text-muted p-3">You haven't joined any events yet.</p>
@@ -360,73 +389,80 @@ export default function Chats() {
 
             {/* --- RIGHT PANEL: CHAT WINDOW --- */}
             <div className="chat-window-panel">
-              {activeChatEvent ? (
-                <div className="card h-100 border-0 rounded-0">
-                  {/* Chat Header */}
-                  <div className="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
-                    <div className="d-flex align-items-center">
-                      <img
-                        src={`${import.meta.env.VITE_API_URL}/api/upload/${activeChatEvent.EventPhoto}`}
-                        className="rounded-circle me-3 chat-avatar"
-                        alt={activeChatEvent.EventName}
-                      />
-                      <div>
-                        <h5 className="fw-bold mb-0">{activeChatEvent.EventName}</h5>
-                        <small className="text-muted">{activeChatEvent.EventVenue} • {new Date(activeChatEvent.EventDate).toDateString()}</small>
+              {activeChatEvent ? (() => {
+                  const data = getEventData(activeChatEvent); // Get safe data for active window
+                  return (
+                    <div className="card h-100 border-0 rounded-0">
+                      {/* Chat Header */}
+                      <div className="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
+                        <div className="d-flex align-items-center">
+                          <img
+                            src={data.photo ? `${import.meta.env.VITE_API_URL}/api/upload/${data.photo}` : "https://via.placeholder.com/50"}
+                            className="rounded-circle me-3 chat-avatar"
+                            alt={data.name}
+                            onError={(e) => { e.target.src = "https://via.placeholder.com/50"; }}
+                          />
+                          <div>
+                            <h5 className="fw-bold mb-0">{data.name}</h5>
+                            <small className="text-muted">
+                              {data.venue} 
+                              {data.date ? ` • ${new Date(data.date).toDateString()}` : ''}
+                            </small>
+                          </div>
+                        </div>
+                        <button className="btn btn-sm btn-outline-secondary" onClick={handleCloseActiveChat}>
+                          <i className="bi bi-x-lg"></i>
+                        </button>
+                      </div>
+
+                      {/* Message Body */}
+                      <div className="card-body chat-window-body overflow-auto p-3">
+                        {messages.length === 0 ? (
+                          <p className="text-muted text-center mt-4">No messages yet. Say hi 👋</p>
+                        ) : (
+                          messages.map((m, idx) => {
+                            const isMe = m.user_email === currentUserEmail;
+                            return (
+                              <div
+                                key={idx}
+                                className={`d-flex mb-3 ${isMe ? 'justify-content-end' : 'justify-content-start'}`}
+                              >
+                                <div style={{ maxWidth: '70%' }}>
+                                  <div className={`small text-muted ${isMe ? 'text-end' : ''}`}>
+                                    {m.user_email}
+                                  </div>
+                                  <div className={`chat-bubble ${isMe ? 'me' : 'other'}`}>
+                                    {m.message_content}
+                                  </div>
+                                  <div className={`chat-timestamp ${isMe ? 'text-end' : ''}`}>
+                                    {new Date(m.sent_at).toLocaleTimeString()}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                        <div ref={messagesEndRef} />
+                      </div>
+
+                      {/* Chat Footer (Input) */}
+                      <div className="card-footer bg-white p-3">
+                        <div className="d-flex gap-2">
+                          <input
+                            value={newMessage}
+                            onChange={(e) => setNewMessage(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') handleSendMessage(); }}
+                            className="form-control"
+                            placeholder="Type a message..."
+                          />
+                          <button className="btn btn-danger" style={{ backgroundColor: "#711212" }} onClick={handleSendMessage}>
+                            <i className="bi bi-send-fill"></i>
+                          </button>
+                        </div>
                       </div>
                     </div>
-                    <button className="btn btn-sm btn-outline-secondary" onClick={handleCloseActiveChat}>
-                      <i className="bi bi-x-lg"></i>
-                    </button>
-                  </div>
-
-                  {/* Message Body */}
-                  <div className="card-body chat-window-body overflow-auto p-3">
-                    {messages.length === 0 ? (
-                      <p className="text-muted text-center mt-4">No messages yet. Say hi 👋</p>
-                    ) : (
-                      messages.map((m, idx) => {
-                        const isMe = m.user_email === currentUserEmail;
-                        return (
-                          <div
-                            key={idx}
-                            className={`d-flex mb-3 ${isMe ? 'justify-content-end' : 'justify-content-start'}`}
-                          >
-                            <div style={{ maxWidth: '70%' }}>
-                              <div className={`small text-muted ${isMe ? 'text-end' : ''}`}>
-                                {m.user_email}
-                              </div>
-                              <div className={`chat-bubble ${isMe ? 'me' : 'other'}`}>
-                                {m.message_content}
-                              </div>
-                              <div className={`chat-timestamp ${isMe ? 'text-end' : ''}`}>
-                                {new Date(m.sent_at).toLocaleTimeString()}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                    <div ref={messagesEndRef} />
-                  </div>
-
-                  {/* Chat Footer (Input) */}
-                  <div className="card-footer bg-white p-3">
-                    <div className="d-flex gap-2">
-                      <input
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter') handleSendMessage(); }}
-                        className="form-control"
-                        placeholder="Type a message..."
-                      />
-                      <button className="btn btn-danger" style={{ backgroundColor: "#711212" }} onClick={handleSendMessage}>
-                        <i className="bi bi-send-fill"></i>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
+                  );
+              })() : (
                 // If no chat is selected (Placeholder)
                 <div className="d-flex h-100 justify-content-center align-items-center bg-light">
                   <div className="text-center text-muted">
@@ -446,24 +482,28 @@ export default function Chats() {
                 <h4 className="fw-bold">My Chats</h4>
                 {joinedEvents.length > 0 ? (
                   <div className="list-group">
-                    {joinedEvents.map((event, i) => (
-                      <a
-                        key={i}
-                        className="list-group-item list-group-item-action d-flex align-items-center p-3"
-                        onClick={() => handleViewChat(event)}
-                      >
-                        <img
-                          src={`${import.meta.env.VITE_API_URL}/api/upload/${event.EventPhoto}`}
-                          className="rounded-circle me-3 chat-avatar"
-                          alt={event.EventName}
-                        />
-                        <div className="flex-grow-1">
-                          <div className="fw-bold text-truncate">{event.EventName}</div>
-                          <small className="text-muted text-truncate">{event.EventVenue}</small>
-                        </div>
-                        <i className="bi bi-chevron-right"></i>
-                      </a>
-                    ))}
+                    {joinedEvents.map((event, i) => {
+                       const data = getEventData(event); // Get safe data
+                       return (
+                        <a
+                          key={i}
+                          className="list-group-item list-group-item-action d-flex align-items-center p-3"
+                          onClick={() => handleViewChat(event)}
+                        >
+                          <img
+                            src={data.photo ? `${import.meta.env.VITE_API_URL}/api/upload/${data.photo}` : "https://via.placeholder.com/50"}
+                            className="rounded-circle me-3 chat-avatar"
+                            alt={data.name}
+                            onError={(e) => { e.target.src = "https://via.placeholder.com/50"; }}
+                          />
+                          <div className="flex-grow-1">
+                            <div className="fw-bold text-truncate">{data.name}</div>
+                            <div className="text-muted text-truncate">{data.venue}</div>
+                          </div>
+                          <i className="bi bi-chevron-right"></i>
+                        </a>
+                      );
+                    })}
                   </div>
                 ) : (
                   <p className="text-center text-muted mt-5">You haven't joined any events yet.</p>
