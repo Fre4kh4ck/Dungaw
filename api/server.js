@@ -568,13 +568,28 @@ server.get('/manageEvents', verifyToken, (req, res) => {
 });
 
 // --- MODIFIED: Get Events (changed ORDER BY) ---
+// --- FIXED: Get All Events (With Alias Mapping) ---
 server.get("/events", async (req, res) => {
   try {
+    // We select specific columns and rename them (Alias) to match your React code
     const rows = await db.select({
-      ...events,
-      EventDate: events.event_start_date
-    }).from(events).orderBy(events.event_start_date);
-    res.send(rows);
+      EventID: events.event_id,
+      EventName: events.event_name,
+      EventTime: events.event_time,
+      EventStartDate: events.event_start_date,
+      EventEndDate: events.event_end_date,
+      EventVenue: events.event_venue,
+      EventDescription: events.event_description,
+      EventPhoto: events.event_photo,
+      EventDept: events.event_dept,
+      EventStatus: events.event_status,
+      EventDate: events.event_start_date // AdminManageEvents uses this specific name
+    })
+      .from(events)
+      .orderBy(desc(events.event_start_date)); // Order by newest first
+
+    res.json(rows);
+
   } catch (err) {
     console.error("Error fetching events:", err);
     res.status(500).json({ error: "Failed to fetch events" });
@@ -598,13 +613,30 @@ server.get('/accounts', verifyToken, (req, res) => {
 });
 
 // --- MODIFIED: Get events by status (changed ORDER BY) ---
+// --- FIXED: Get events by status (With Alias Mapping) ---
 server.get("/events/status/:status", async (req, res) => {
   try {
     const { status } = req.params;
+
+    // We select specific columns and rename them (Alias) to match your React code
     const rows = await db.select({
-      ...events,
+      EventID: events.event_id,
+      EventName: events.event_name,
+      EventTime: events.event_time,
+      EventStartDate: events.event_start_date,
+      EventEndDate: events.event_end_date,
+      EventVenue: events.event_venue,
+      EventDescription: events.event_description,
+      EventPhoto: events.event_photo,
+      EventDept: events.event_dept,
+      EventStatus: events.event_status,
+      EventDenialReason: events.event_denial_reason,
       EventDate: events.event_start_date
-    }).from(events).where(eq(events.event_status, status)).orderBy(desc(events.event_start_date));
+    })
+      .from(events)
+      .where(eq(events.event_status, status))
+      .orderBy(desc(events.event_start_date));
+
     res.json(rows);
 
   } catch (err) {
