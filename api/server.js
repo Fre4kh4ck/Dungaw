@@ -2,7 +2,6 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const bodyParser = require('body-parser');
 const db = require('./db.js');
 const verifyToken = require('./middlewares/verifyToken.js');
 const multer = require('multer');
@@ -16,11 +15,11 @@ const qr = require('qrcode');
 const { v4: uuidv4 } = require('uuid');
 
 const server = express();
-const host = 'http://dungaw.ua';
+const host = 'localhost';
 const port = 4435;
 
 server.use(express.json());
-server.use(bodyParser.urlencoded({ extended: false }));
+server.use(express.urlencoded({ extended: false }));
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 server.use(cors({
@@ -44,9 +43,9 @@ server.post("/verify-ticket", async (req, res) => {
 
     // 2. Find the user's ticket AND the Event Name
     const [rows] = await db.pool.query(
-      `SELECT 
+      `SELECT
          j.user_email, j.event_id, j.ticket_id, j.time_in, j.time_out,
-         e.EventName 
+         e.EventName
        FROM joined_events j
        JOIN addevent e ON j.event_id = e.EventID
        WHERE j.user_email = ? AND j.event_id = ? AND j.ticket_id = ?`,
@@ -192,10 +191,10 @@ server.get("/chats/notifications/:email", async (req, res) => {
   try {
     // 1. Get all chatrooms (events) the user is in, now JOINing to get the EventName
     const result = await db.pool.query(
-      `SELECT 
-         j.event_id, 
-         j.last_read_at, 
-         e.EventName 
+      `SELECT
+         j.event_id,
+         j.last_read_at,
+         e.EventName
        FROM joined_events j
        INNER JOIN addevent e ON j.event_id = e.EventID
        WHERE j.user_email = ?`,
@@ -276,9 +275,9 @@ server.get("/event/:id/participants", async (req, res) => {
 
   try {
     const result = await db.pool.query(
-      `SELECT 
+      `SELECT
         j.user_email AS email,
-        COALESCE(u.name, j.user_email) AS name, 
+        COALESCE(u.name, j.user_email) AS name,
         j.joined_at AS joinedAt,
         j.time_in AS timeIn,
         j.time_out AS timeOut
@@ -437,9 +436,9 @@ server.post("/join-event", async (req, res) => {
                           <h2>You're In!</h2>
                           <p>You have successfully joined the event: <strong>${eventName}</strong>.</p>
                           <p>Please present this unique QR code to the event admin for scanning.</p>
-                          
+
                           <img src="cid:eventqrcode" alt="Your Event QR Code" style="width: 250px; height: 250px; margin-top: 20px;" />
-                          
+
                           <p style="margin-top: 30px; font-size: 0.9em; color: #777;">
                               University of Antique Event Management
                           </p>
@@ -745,7 +744,7 @@ server.post('/addevent/add', upload.single('photo'), async (req, res) => {
 
 
 
-//Protect Endpoint 
+//Protect Endpoint
 server.get('/adminEvents', verifyToken, async (req, res) => {
   try {
     res.json({
@@ -821,7 +820,7 @@ server.get('/accounts/order/id', async (req, res) => {
   }
 });
 
-//Edit Account 
+//Edit Account
 server.put('/accounts/edit', async (req, res) => {
   try {
     const task = req.body;
@@ -839,7 +838,7 @@ server.put('/accounts/edit', async (req, res) => {
   }
 });
 
-//Delete Account 
+//Delete Account
 
 server.post('/accounts/delete', async (req, res) => {
   try {
@@ -876,8 +875,8 @@ server.post('/account/search', async (req, res) => {
     console.log("Searching accounts:", depKeyword, roleKeyword);
 
     const [rows] = await db.pool.query(
-      `SELECT * FROM accounts 
-        WHERE LOWER(account_name) LIKE LOWER(?) 
+      `SELECT * FROM accounts
+        WHERE LOWER(account_name) LIKE LOWER(?)
           OR LOWER(account_type) LIKE LOWER(?)`,
       [depKeyword, roleKeyword]
     );

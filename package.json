@@ -1,10 +1,10 @@
 {
-  "homepage": "https://Dungaw-UA.com",
   "name": "dungaw",
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "dev": "bun server.js",
+    "dev": "vite",
+    "dev:server": "bun api/server.js",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -24,6 +24,7 @@
     "jspdf": "^3.0.3",
     "jspdf-autotable": "^5.0.2",
     "jwt-decode": "^4.0.0",
+    "mariadb": "^3.3.1",
     "multer": "^2.0.2",
     "nodemailer": "^7.0.10",
     "qrcode": "^1.5.4",
