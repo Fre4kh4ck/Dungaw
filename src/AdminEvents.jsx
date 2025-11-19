@@ -133,7 +133,7 @@ export default function AdminHome() {
         formData.append("dept", e.target.dept.value);
 
         try {
-            await axios.post("http://dungaw.ua:4435/addevent/add", formData, {
+            await axios.post("http://dungaw.ua:4435/events/add", formData, {
                 headers: { "Content-Type": "multipart/form-data" },
             });
             alert("✅ Event added successfully!");
@@ -190,9 +190,9 @@ export default function AdminHome() {
                         {/* ✅ BUTTON IS NOW VISIBLE TO EVERYONE */}
                         {/* But we added onClick={handleAdminClick} to restrict access */}
                         <li className="nav-item mb-3">
-                            <a 
-                                className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded" 
-                                href="#" 
+                            <a
+                                className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded"
+                                href="#"
                                 onClick={handleAdminClick} // ⛔ The logic is here
                                 style={{ cursor: "pointer" }}
                             >
