@@ -11,20 +11,21 @@ import FBLOGO from "./assets/fblogo.png";
 import INSTALOGO from "./assets/instalogo.png";
 
 // --- ✅ STYLES (Design Preserved + Mobile Fix Added) ---
+// --- ✅ STYLES (Design Preserved + Mobile Calendar Header Fix Added) ---
 const CalendarStyles = () => (
   <style>{`
     /* Main page layout */
     .page-container {
-      margin-top: 7rem; /* Aligns to bottom of 7rem navbar */
+      margin-top: 7rem;
       margin-left: 0;
       padding: 1.5rem;
       transition: margin-left 0.3s ease-in-out;
-      background-color: #f8f9fa; /* A very light gray background */
+      background-color: #f8f9fa;
       min-height: calc(100vh - 7rem);
     }
 
     .page-container-large {
-      margin-left: 250px; /* Pushes content right when sidebar is open */
+      margin-left: 250px;
     }
 
     /* Professional Page Header */
@@ -49,6 +50,9 @@ const CalendarStyles = () => (
     .calendar-wrapper {
       width: 100%;
       max-width: 100%;
+      background: white;
+      border-radius: 1rem;
+      overflow: hidden; /* Keeps corners rounded */
     }
     .react-calendar {
       width: 100%;
@@ -58,6 +62,12 @@ const CalendarStyles = () => (
     .react-calendar__tile {
       border-radius: 0.5rem;
       transition: all 0.2s ease;
+      height: 60px; /* Gives tiles some height */
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      padding-top: 10px;
     }
     .react-calendar__tile--active {
       background: #711212 !important;
@@ -77,10 +87,32 @@ const CalendarStyles = () => (
       font-weight: bold;
       color: #711212;
     }
-    .react-calendar__month-view__weekdays__weekday {
+
+    /* ============================================
+       ✅ FIX: WEEKDAY HEADERS (Mon, Tue, etc.)
+       ============================================ */
+    .react-calendar__month-view__weekdays {
+      text-align: center;
+      text-transform: uppercase;
+      font-size: 0.8rem; /* Smaller font for mobile */
       font-weight: bold;
+      margin-bottom: 0.5rem;
+    }
+
+    .react-calendar__month-view__weekdays__weekday {
+      padding: 0.5rem 0;
       color: #333;
       text-decoration: none;
+      display: flex;         /* Flexbox centering */
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Targets the abbr tag to stop "Mon" becoming "Mo n" */
+    .react-calendar__month-view__weekdays__weekday abbr {
+      text-decoration: none; /* Removes dotted underline */
+      white-space: nowrap;   /* Forces text to stay on one line */
+      cursor: default;
     }
 
     /* --- Event Dots --- */
@@ -89,10 +121,8 @@ const CalendarStyles = () => (
       justify-content: center;
       align-items: center;
       gap: 3px;
-      position: absolute;
-      bottom: 5px;
-      left: 0;
-      right: 0;
+      margin-top: auto; /* Pushes dots to bottom of tile */
+      margin-bottom: 5px;
     }
     .event-dot {
       width: 6px;
@@ -125,6 +155,7 @@ const CalendarStyles = () => (
       align-items: center;
       color: white;
       font-weight: bold;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
     .agenda-date span {
       font-size: 1.25rem;
@@ -137,6 +168,7 @@ const CalendarStyles = () => (
     }
     .agenda-details {
       flex-grow: 1;
+      min-width: 0; /* Allows truncation to work */
     }
     .agenda-details h6 {
       font-weight: bold;
@@ -147,24 +179,24 @@ const CalendarStyles = () => (
        ✅ FIX: RESPONSIVE MONTH NAVIGATION 
        ============================================ */
     @media (max-width: 576px) {
-      /* 1. Hide the double arrows (Jump Year) on small screens to save space */
       .react-calendar__navigation__prev2-button,
       .react-calendar__navigation__next2-button {
         display: none !important;
       }
-
-      /* 2. Ensure the Month Label uses available space and doesn't wrap */
       .react-calendar__navigation__label {
         font-size: 1.1rem !important;
         flex-grow: 1 !important;
         white-space: nowrap; 
         overflow: hidden;
       }
-
-      /* 3. Reduce padding on arrows */
       .react-calendar__navigation button {
         min-width: 40px !important;
         padding: 0 !important;
+      }
+      
+      /* Extra safety for weekday font size on very small screens */
+      .react-calendar__month-view__weekdays {
+        font-size: 0.7rem; 
       }
     }
   `}</style>

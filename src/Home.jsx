@@ -20,6 +20,7 @@ import CCISMP4 from './assets/CCSMP4.mp4';
 import CBAMP4 from './assets/HMVID.mp4';
 
 // --- STYLES ---
+// --- STYLES (Updated with Calendar Fixes) ---
 const HomeStyles = () => (
   <style>{`
     .page-container {
@@ -76,7 +77,7 @@ const HomeStyles = () => (
       margin-bottom: 0.5rem;
     }
     
-    /* --- CALENDAR FIXES START --- */
+    /* --- ✅ CALENDAR FIXES START --- */
     .calendar-wrapper .react-calendar {
       width: 100%;
       border: none;
@@ -87,7 +88,11 @@ const HomeStyles = () => (
       border-radius: 0.5rem;
       position: relative;
       min-height: 55px;
-      padding: 10px 6.6667px; /* Default padding */
+      padding: 10px 6.6667px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
     }
     .react-calendar__tile--active {
       background: #711212 !important;
@@ -100,32 +105,53 @@ const HomeStyles = () => (
       color: #711212;
       min-width: 44px;
       background: none;
+      font-weight: bold;
+      font-size: 1.2rem;
     }
-    /* Remove dots under Mon, Tue, etc */
-    abbr[title] {
-        text-decoration: none !important;
-        font-weight: bold;
-        font-size: 0.9rem;
+
+    /* --- WEEKDAY HEADER FIXES --- */
+    .react-calendar__month-view__weekdays {
+      text-align: center;
+      font-size: 0.8rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+    }
+    .react-calendar__month-view__weekdays__weekday {
+      padding: 0.5rem 0;
+      display: flex;           /* Centers content */
+      justify-content: center; 
+      align-items: center;
+    }
+    /* Target the ABBR tag specifically to stop wrapping */
+    .react-calendar__month-view__weekdays__weekday abbr {
+      text-decoration: none !important;
+      white-space: nowrap !important; /* ✅ This stops "Mon" from becoming "Mo n" */
+      cursor: default;
+      font-weight: bold;
     }
     
     /* MOBILE SPECIFIC FIXES */
     @media (max-width: 576px) {
         .react-calendar__tile {
             min-height: 40px;
-            padding: 5px 2px !important; /* Less padding to prevent stacking */
-            font-size: 0.75rem !important; /* Smaller font */
+            padding: 5px 2px !important; 
+            font-size: 0.75rem !important; 
             overflow: hidden;
         }
         .react-calendar__month-view__days__day--weekend {
             font-size: 0.75rem !important;
         }
         .react-calendar__navigation button {
-            font-size: 1rem; /* Smaller nav buttons */
+            font-size: 1rem;
         }
         .event-dot {
             width: 4px;
             height: 4px;
             margin-top: 2px;
+        }
+        /* Ensure text fits on small screens */
+        .react-calendar__month-view__weekdays__weekday abbr {
+            font-size: 0.7rem; 
         }
     }
     /* --- CALENDAR FIXES END --- */
@@ -135,7 +161,7 @@ const HomeStyles = () => (
       height: 6px;
       border-radius: 50%;
       margin: 0 auto;
-      margin-top: 4px;
+      margin-top: auto; /* Pushes dot to bottom */
       background-color: #711212;
     }
     .agenda-list-group {
