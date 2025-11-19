@@ -148,10 +148,10 @@ export default function Chats() {
     };
 
     // UNIFIED LOGIC: Set Active Chat for BOTH Mobile and Desktop
-    setMessages([]); 
+    setMessages([]);
     setActiveChatEvent(event);
     markAsRead();
-    
+
     // Note: We removed the 'navigate' call here to prevent the white screen.
   };
 
@@ -295,43 +295,54 @@ export default function Chats() {
         {/* Sidebar */}
         <div className={`border-end text-light position-fixed top-0 start-0 h-100 sidebar d-flex flex-column ${sidebarOpen ? "show" : ""}`}
           style={{ width: '250px', zIndex: 1040, boxShadow: '2px 0 10px rgba(0,0,0,0.1)', backgroundColor: '#711212ff' }}>
-             {/* Sidebar content same as before... */}
-             <div className="px-4 pt-4 pb-2 border-bottom d-flex align-items-center gap-2">
-              <img src={UALOGO} alt="UA logo" style={{ width: '40px' }} />
-              <div>
-                <div className="fw-bold" style={{ fontSize: '1.1rem' }}>University of Antique</div>
-                <div className="text-muted" style={{ fontSize: '0.85rem' }}>Sibalom Campus</div>
-              </div>
+          {/* Sidebar content same as before... */}
+          <div className="px-4 pt-4 pb-2 border-bottom d-flex align-items-center gap-2">
+            <img src={UALOGO} alt="UA logo" style={{ width: '40px' }} />
+            <div>
+              <div className="fw-bold" style={{ fontSize: '1.1rem' }}>University of Antique</div>
+              <div className="text-muted" style={{ fontSize: '0.85rem' }}>Sibalom Campus</div>
             </div>
-            <ul className="nav flex-column mt-5 px-3">
-              <li className="nav-item mb-2">
-                <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/home">
-                  <i className="bi bi-house-door-fill"></i> Home
-                </a>
-              </li>
-              <li className="nav-item mb-2">
-                <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/calendar">
-                  <i className="bi bi-calendar-event-fill"></i> Calendar
-                </a>
-              </li>
-              <li className="nav-item mb-2">
-                <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/events">
-                  <i className="bi bi-calendar2-event"></i> Events
-                </a>
-              </li>
-              <li className="nav-item mb-2">
-                <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded" href="/chats"
-                  style={{ borderRadius: '4px', backgroundColor: 'rgba(255, 255, 255, 0.3)' }}>
-                  <i className="bi bi-chat-dots-fill"></i> Chat
-                </a>
-              </li>
-              <li className="nav-item mb-2 justify-content-center d-flex mt-5">
-                <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg text-center"
-                  href="/login" onClick={handleLogout}>
-                  <i className="bi bi-box-arrow-right"></i> Log out
-                </a>
-              </li>
-            </ul>
+          </div>
+          <ul className="nav flex-column mt-5 px-3">
+            <li className="nav-item mb-2">
+              <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/home">
+                <i className="bi bi-house-door-fill"></i> Home
+              </a>
+            </li>
+            <li className="nav-item mb-2">
+              <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/calendar">
+                <i className="bi bi-calendar-event-fill"></i> Calendar
+              </a>
+            </li>
+            <li className="nav-item mb-2">
+              <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/events">
+                <i className="bi bi-calendar2-event"></i> Events
+              </a>
+            </li>
+            <li className="nav-item mb-2">
+              <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded" href="/chats"
+                style={{ borderRadius: '4px', backgroundColor: 'rgba(255, 255, 255, 0.3)' }}>
+                <i className="bi bi-chat-dots-fill"></i> Chat
+              </a>
+            </li>
+            <li className="nav-item d-flex justify-content-center gap-3 mt-5">
+              <a className="nav-link p-0" href="https://sims.antiquespride.edu.ph/aims/" target="_blank" rel="noopener noreferrer">
+                <img style={{ width: '2rem', marginTop: "clamp(14rem, 17vw, 30rem)" }} src={UALOGO} alt="UA Logo" />
+              </a>
+              <a className="nav-link p-0" href="https://www.facebook.com/universityofantique" target="_blank" rel="noopener noreferrer">
+                <img style={{ width: '2rem', marginTop: "clamp(14rem, 17vw, 30rem)" }} src={FBLOGO} alt="FB Logo" />
+              </a>
+              <a className="nav-link p-0" href="https://www.instagram.com/universityofantique/" target="_blank" rel="noopener noreferrer">
+                <img style={{ width: '2rem', marginTop: "clamp(14rem, 17vw, 30rem)" }} src={INSTALOGO} alt="IG Logo" />
+              </a>
+            </li>
+            <li className="nav-item mb-2 justify-content-center d-flex mt-1">
+              <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg text-center"
+                href="/login" onClick={handleLogout}>
+                <i className="bi bi-box-arrow-right"></i> Log out
+              </a>
+            </li>
+          </ul>
         </div>
       </div>
 
