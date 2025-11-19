@@ -25,7 +25,7 @@ server.use(express.urlencoded({ extended: false }));
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 server.use(cors({
-  origin: ['http://localhost:5173', 'http://dungaw.ua:5173'],
+  origin: [process.env.APP_URL],
   credentials: true
 }));
 
