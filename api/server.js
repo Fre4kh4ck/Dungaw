@@ -367,7 +367,8 @@ server.post("/join-event", async (req, res) => {
       ticketId: ticket_id
     });
 
-    const qrCodeDataURL = await qr.toDataURL(qrData);
+    const qrBuffer = await qr.toBuffer(qrData, { type: 'png' });
+    const qrCodeDataURL = `data:image/png;base64,${qrBuffer.toString('base64')}`;
 
     // 3. Save to database
     await db.insert(joined_events).values({
@@ -410,7 +411,7 @@ server.post("/join-event", async (req, res) => {
                       Sibalom Main Campus
                   </p>
               </div>
-        `,
+        `
       };
 
       await transporter.sendMail(msg);
