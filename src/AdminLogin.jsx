@@ -1,9 +1,9 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import LOGO from "../src/assets/Logo.png";
 import "../css/style.css";
-import SUBAY from "../src/assets/Subay.png";
+import ReCAPTCHA from "react-google-recaptcha"; // ✅ 1. Import ReCAPTCHA
 
 export default function AdminLogin() {
   const googleDivRef = useRef(null);
@@ -11,7 +11,19 @@ export default function AdminLogin() {
   const passwordRef = useRef(null);
   const navigate = useNavigate();
 
+  // ✅ 2. State to track if Captcha is verified
+  const [captchaVerified, setCaptchaVerified] = useState(false);
+
+  // Use the same Site Key as your UserLogin
+  const RECAPTCHA_SITE_KEY = "6LcroxMsAAAAAJAyVxfx79pyHg21Y4i8m4MNNoKN"; 
+
   const handleLogin = async () => {
+    // ✅ 3. Block Login if Captcha is not checked
+    if (!captchaVerified) {
+        alert("Please verify that you are not a robot.");
+        return; 
+    }
+
     const username = emailRef.current.value.trim();
     const password = passwordRef.current.value.trim();
 
@@ -31,7 +43,6 @@ export default function AdminLogin() {
       console.log('🧾 Backend response:', data);
 
       if (!res.ok) {
-
         alert(data.message || 'Login failed');
         return;
       }
@@ -57,6 +68,16 @@ export default function AdminLogin() {
     }
   };
 
+  // ✅ 4. Function to handle Captcha changes
+  const onCaptchaChange = (value) => {
+    console.log("Captcha value:", value);
+    if (value) {
+        setCaptchaVerified(true);
+    } else {
+        setCaptchaVerified(false);
+    }
+  };
+
   const handleCredentialResponse = (response) => {
     console.log("Encoded JWT ID token:", response.credential);
   };
@@ -67,7 +88,6 @@ export default function AdminLogin() {
         client_id: '934203088661-jtnhip516m0nfqb14sdbkmuntqcuu1r5.apps.googleusercontent.com',
         callback: handleCredentialResponse,
       });
-
       window.google.accounts.id.renderButton(googleDivRef.current, {
         theme: 'outline',
         size: 'large',
@@ -109,7 +129,7 @@ export default function AdminLogin() {
                 src={LOGO}
                 alt="Logo"
                 className="logo-img"
-                style={{ width: '12rem', height: 'auto', marginBottom: '5rem', marginTop: '4rem' }}
+                style={{ width: '12rem', height: 'auto', marginBottom: '4rem', marginTop: '4rem' }}
               />
             </div>
 
@@ -137,15 +157,28 @@ export default function AdminLogin() {
               </div>
             </div>
 
+            {/* ✅ 5. Render reCAPTCHA before the login button */}
+            <div className="d-flex justify-content-center mb-4">
+                <ReCAPTCHA
+                    sitekey={RECAPTCHA_SITE_KEY}
+                    onChange={onCaptchaChange}
+                    theme="light"
+                />
+            </div>
+
             <div className="d-flex justify-content-center mb-5">
               <button
-                className="btn btn-danger btn-lg login-bt"
-                onClick={handleLogin}  // ✅ hook up login logic
+                className={`btn btn-lg login-bt ${captchaVerified ? 'btn-danger' : 'btn-secondary'}`} // Visual change
+                onClick={handleLogin}
+                disabled={!captchaVerified} // Optional: Physically disable button
+                style={{ 
+                    cursor: captchaVerified ? 'pointer' : 'not-allowed',
+                    opacity: captchaVerified ? 1 : 0.6
+                }}
               >
                 Login
               </button>
             </div>
-
           </div>
         </div>
       </div>
