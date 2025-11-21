@@ -105,7 +105,7 @@ export default function UserLogin() {
                     <h2 className="custom-size-1 text-white mt-3 mb-5 font-sans">DUNGAW</h2>
                     <h3 className="custom-size-2 text-white text-center mt-5">
                         Smart Campus companion. Stay updated with events, discover <br />
-                        course promotions, get instant help through our built-in chat. <br /> <br />
+                        course promotions, get instant help through our built in chat. <br /> <br />
                         Everything you need, all in one place.
                     </h3>
                 </div>
