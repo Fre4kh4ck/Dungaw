@@ -1,14 +1,19 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import LOGO from "./assets/Logo.png";
 import "../css/style.css";
 import { useNavigate } from 'react-router-dom';
-import BG from './assets/bg.jpg'
-
+import BG from './assets/bg.jpg';
+import ReCAPTCHA from "react-google-recaptcha"; 
 
 export default function UserLogin() {
     const googleDivRef = useRef(null);
     const navigate = useNavigate();
+    
+    // ✅ State to track if Captcha is verified
+    const [captchaVerified, setCaptchaVerified] = useState(false);
+
+    const RECAPTCHA_SITE_KEY = "6LcroxMsAAAAAJAyVxfx79pyHg21Y4i8m4MNNoKN"; 
 
     const handleCredentialResponse = async (response) => {
         try {
@@ -34,10 +39,7 @@ export default function UserLogin() {
                 return;
             }
 
-            // 1. Save Token for verified users
             localStorage.setItem("token", data.token);
-
-            // 2. Save User Data (Ensure they have a role, default to student)
             const userToSave = { ...data.user, role: data.user.role || 'student' };
             localStorage.setItem("user", JSON.stringify(userToSave));
 
@@ -48,22 +50,28 @@ export default function UserLogin() {
         }
     };
 
-    // ✅ STEP 1 FIX: Handle Guest Login properly
     const handleGuestLogin = () => {
-        // A. Clear any old data so they don't get mixed up
-        localStorage.removeItem("token");
+        if (!captchaVerified) {
+            alert("Please verify that you are not a robot.");
+            return;
+        }
 
-        // B. Create a "Guest" identity
+        localStorage.removeItem("token");
         const guestUser = {
             name: "Guest Visitor",
-            role: "guest" // 🔒 This is the security key
+            role: "guest"
         };
-
-        // C. Save it
         localStorage.setItem("user", JSON.stringify(guestUser));
-
-        // D. Send them to Home
         navigate('/home');
+    };
+
+    const onCaptchaChange = (value) => {
+        console.log("Captcha value:", value);
+        if (value) {
+            setCaptchaVerified(true);
+        } else {
+            setCaptchaVerified(false);
+        }
     };
 
     useEffect(() => {
@@ -93,24 +101,19 @@ export default function UserLogin() {
                         height: '100%',
                     }}
                 >
-                    <h1 className="custom-size text-white fw-bold m-0 font-serif">
-                        Welcome to
-                    </h1>
-                    <h2 className="custom-size-1 text-white mt-3 mb-5 font-sans">
-                        DUNGAW
-                    </h2>
+                    <h1 className="custom-size text-white fw-bold m-0 font-serif">Welcome to</h1>
+                    <h2 className="custom-size-1 text-white mt-3 mb-5 font-sans">DUNGAW</h2>
                     <h3 className="custom-size-2 text-white text-center mt-5">
                         Smart Campus companion. Stay updated with events, discover <br />
-                        course promotions, get instant help through our built-in chat. <br /> <br />
+                        course promotions, get instant help through our built in chat. <br /> <br />
                         Everything you need, all in one place.
                     </h3>
                 </div>
+                
+                {/* Right Side (Login Form) */}
                 <div
                     className="col-lg-5 col-sm-12 order-1 order-lg-2 d-flex justify-content-center align-items-center position-relative"
-                    style={{
-                        minHeight: '100vh',
-                        overflow: 'hidden'
-                    }}
+                    style={{ minHeight: '100vh', overflow: 'hidden' }}
                 >
                     {/* Background Layer */}
                     <div
@@ -136,16 +139,46 @@ export default function UserLogin() {
                                 src={LOGO}
                                 alt="Logo"
                                 className="logo-img"
-                                style={{ width: '12rem', height: 'auto', marginBottom: '8rem', marginTop: '4rem' }}
+                                style={{ width: '12rem', height: 'auto', marginBottom: '4rem', marginTop: '4rem' }}
                             />
                         </div>
 
                         <div className="d-flex flex-column align-items-center button-container">
-                            <div ref={googleDivRef}></div>
+                            
+                            {/* ✅ RECAPTCHA COMPONENT (Moved to top) */}
+                            <div className="mb-4">
+                                <ReCAPTCHA
+                                    sitekey={RECAPTCHA_SITE_KEY}
+                                    onChange={onCaptchaChange}
+                                    theme="light"
+                                />
+                            </div>
 
+                            {/* ✅ WRAPPER FOR GOOGLE LOGIN */}
+                            {/* This div intercepts clicks if captcha is not verified */}
+                            <div 
+                                style={{
+                                    pointerEvents: captchaVerified ? 'auto' : 'none', // 🔒 Blocks clicks
+                                    opacity: captchaVerified ? 1 : 0.5,               // 🔒 Dims the button
+                                    filter: captchaVerified ? 'none' : 'grayscale(100%)', // 🔒 Makes it grey
+                                    transition: 'all 0.3s ease',
+                                    cursor: captchaVerified ? 'pointer' : 'not-allowed'
+                                }}
+                                title={captchaVerified ? "Sign in with Google" : "Please verify you are not a robot first"}
+                            >
+                                <div ref={googleDivRef}></div>
+                            </div>
+
+                            {/* Guest Login Button */}
                             <button
-                                className="btn btn-outline-danger guest-btn mt-4 text-white"
-                                onClick={handleGuestLogin} // ✅ Calls the function above
+                                className={`btn mt-4 text-white ${captchaVerified ? 'btn-outline-danger' : 'btn-secondary'}`}
+                                onClick={handleGuestLogin}
+                                disabled={!captchaVerified} 
+                                style={{ 
+                                    cursor: captchaVerified ? 'pointer' : 'not-allowed',
+                                    opacity: captchaVerified ? 1 : 0.7,
+                                    width: '300px' // Matching Google Button width
+                                }}
                             >
                                 Continue as Guest
                             </button>

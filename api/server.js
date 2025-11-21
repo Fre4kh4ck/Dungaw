@@ -657,28 +657,38 @@ server.put("/events/status/update", async (req, res) => {
 
 // --- MODIFIED: /events/add endpoint ---
 server.post('/events/add', upload.single('photo'), async (req, res) => {
-  const task = req.body;
-  const file = req.file;
+  try {
+    const task = req.body;
+    const file = req.file;
 
-  // --- ADDED: Handle null/empty endDate ---
-  // If task.endDate is an empty string "" or undefined, set it to null for the database
-  const startDate = task.startDate;
-  const endDate = task.endDate || null;
+    // ✅ FIX 1: Read the status sent from React
+    // If React says "approved", this variable becomes "approved"
+    // If it's missing, it defaults to "submitted"
+    const eventStatus = task.status || 'submitted';
 
-  await db.insert(events).values({
-    event_name: task.title,
-    event_time: task.time,
-    event_start_date: startDate,
-    event_end_date: endDate,
-    event_venue: task.venue,
-    event_description: task.description,
-    event_photo: file ? file.originalname : null,
-    event_dept: task.dept,
-    event_status: 'submitted'
-  });
-  // --- END OF MODIFICATION ---
+    const startDate = task.startDate;
+    const endDate = task.endDate || null;
 
-  res.json({ success: true });
+    await db.insert(events).values({
+      event_name: task.title,
+      event_time: task.time,
+      event_start_date: startDate,
+      event_end_date: endDate,
+      event_venue: task.venue,
+      event_description: task.description,
+      event_photo: file ? file.originalname : null,
+      event_dept: task.dept,
+      
+      // ✅ FIX 2: Use the variable, NOT the hardcoded string 'submitted'
+      event_status: eventStatus 
+    });
+
+    res.json({ success: true });
+
+  } catch (err) {
+    console.error("Error adding event:", err);
+    res.status(500).json({ success: false, error: "Failed to add event" });
+  }
 });
 
 
