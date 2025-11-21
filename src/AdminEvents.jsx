@@ -3,29 +3,27 @@ import axios from "axios";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import 'bootstrap-icons/font/bootstrap-icons.css';
-import Calendar from 'react-calendar';
 import "react-calendar/dist/Calendar.css";
 import UALOGO from './assets/Ualogo.png';
-import FBLOGO from './assets/fblogo.png';
-import INSTALOGO from './assets/instalogo.png';
 import STAT from './assets/stat.png';
-import { useNavigate } from "react-router-dom"; // ✅ Import useNavigate
+import { useNavigate } from "react-router-dom"; 
 
 export default function AdminHome() {
+    // --- STATE ---
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [submittedEvents, setSubmittedEvents] = useState([]);
     const [approvedEvents, setApprovedEvents] = useState([]);
     const [deniedEvents, setDeniedEvents] = useState([]);
     const [activeTab, setActiveTab] = useState("submitted");
-    const navigate = useNavigate(); // ✅ Hook for navigation
+    const navigate = useNavigate();
 
-    // ✅ 1. GET THE CURRENT ROLE
+    // --- 1. GET CURRENT ROLE ---
     const rawRole = localStorage.getItem('role');
     const role = rawRole ? rawRole.trim().toLowerCase() : '';
 
     const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
-    // 🔹 Fetch events based on status
+    // --- 2. FETCH EVENTS ---
     const fetchEvents = async () => {
         const statuses = ["submitted", "approved", "denied"];
         for (const status of statuses) {
@@ -44,71 +42,17 @@ export default function AdminHome() {
         fetchEvents();
     }, []);
 
-    // ✅ Handle Admin Button Click
+    // --- 3. HANDLE ADMIN BUTTON CLICK ---
     const handleAdminClick = (e) => {
-        e.preventDefault(); // Stop the link from auto-redirecting
+        e.preventDefault(); 
         if (role === 'admin') {
-            navigate('/accounts'); // Go to page if Admin
+            navigate('/accounts'); 
         } else {
-            alert("⛔ Access Denied: Only the Super Admin can manage accounts."); // Show alert if Co-Admin
+            alert("⛔ Access Denied: Only the Super Admin can manage accounts."); 
         }
     };
 
-    // --- Render Events Function ---
-    const renderEvents = (events) => (
-        <div className="row">
-            {events.map((event) => {
-                const formatOptions = { month: 'short', day: 'numeric', year: 'numeric' };
-                let dateDisplay = "";
-
-                if (event.EventStartDate) {
-                    const startDate = new Date(event.EventStartDate).toLocaleDateString('en-US', formatOptions);
-                    dateDisplay = startDate;
-
-                    if (event.EventEndDate && event.EventEndDate !== event.EventStartDate) {
-                        const endDate = new Date(event.EventEndDate).toLocaleDateString('en-US', formatOptions);
-                        dateDisplay = `${startDate} - ${endDate}`;
-                    }
-                }
-
-                return (
-                    <div key={event.EventID} className="col-md-4 mb-4">
-                        <div className="card shadow-sm">
-                            <img
-                                src={`${import.meta.env.VITE_API_URL}/api/upload/${event.EventPhoto}`}
-                                alt="Event"
-                                className="card-img-top"
-                                style={{ height: "200px", objectFit: "cover" }}
-                            />
-                            <div className="card-body">
-                                <h5 className="card-title fw-bold">{event.EventName}</h5>
-                                <p className="card-text">
-                                    <b>Date:</b> {dateDisplay}<br />
-                                    <b>Time:</b> {event.EventTime}<br />
-                                    <b>Venue:</b> {event.EventVenue}
-                                </p>
-
-                                {event.EventDenialReason && (
-                                    <div
-                                        className="p-2 rounded mt-2"
-                                        style={{ backgroundColor: '#fff3f3', border: '1px solid #ffdede' }}
-                                    >
-                                        <b className="text-danger">Reason for Denial:</b>
-                                        <p className="text-danger mb-0" style={{ whiteSpace: "normal" }}>
-                                            {event.EventDenialReason}
-                                        </p>
-                                    </div>
-                                )}
-
-                                <p className="small text-muted mt-3 mb-0">{event.EventDept}</p>
-                            </div>
-                        </div>
-                    </div>
-                );
-            })}
-        </div>
-    );
-
+    // --- 4. SUBMIT DATA (THE LOGIC FIX IS HERE) ---
     const submitData = async (e) => {
         e.preventDefault();
         const file = e.target.photo.files[0];
@@ -132,22 +76,105 @@ export default function AdminHome() {
         formData.append("photo", file);
         formData.append("dept", e.target.dept.value);
 
+        // ✅ CRITICAL FIX: Determine status based on Role
+        // If Admin -> 'approved'. If Staff -> 'submitted'.
+        const eventStatus = (role === 'admin') ? 'approved' : 'submitted';
+        formData.append("status", eventStatus);
+
         try {
             await axios.post(`${import.meta.env.VITE_API_URL}/events/add`, formData, {
                 headers: { "Content-Type": "multipart/form-data" },
             });
-            alert("✅ Event added successfully!");
+            
+            // Show appropriate message
+            if(role === 'admin') {
+                alert("✅ Event Created and Auto-Approved!");
+            } else {
+                alert("✅ Event Submitted for Review!");
+            }
+            
             e.target.reset();
-            fetchEvents();
+            fetchEvents(); // Refresh the lists
         } catch (err) {
             console.error("Upload error:", err);
             alert("❌ Failed to add event");
         }
     };
 
+    // --- RENDER HELPER FOR EVENTS ---
+    const renderEvents = (events) => (
+        <div className="row">
+            {events.length > 0 ? (
+                events.map((event) => {
+                    const formatOptions = { month: 'short', day: 'numeric', year: 'numeric' };
+                    let dateDisplay = "";
+
+                    if (event.EventStartDate) {
+                        const startDate = new Date(event.EventStartDate).toLocaleDateString('en-US', formatOptions);
+                        dateDisplay = startDate;
+                        if (event.EventEndDate && event.EventEndDate !== event.EventStartDate) {
+                            const endDate = new Date(event.EventEndDate).toLocaleDateString('en-US', formatOptions);
+                            dateDisplay = `${startDate} - ${endDate}`;
+                        }
+                    }
+
+                    return (
+                        <div key={event.EventID} className="col-md-6 col-lg-4 mb-4">
+                            <div className="card shadow-sm h-100 border-0">
+                                <div style={{ position: 'relative', height: '200px' }}>
+                                    <img
+                                        src={`${import.meta.env.VITE_API_URL}/api/upload/${event.EventPhoto}`}
+                                        alt="Event"
+                                        className="card-img-top"
+                                        style={{ height: "100%", width: "100%", objectFit: "cover", borderTopLeftRadius: 'calc(0.375rem - 1px)', borderTopRightRadius: 'calc(0.375rem - 1px)' }}
+                                    />
+                                    <div className="position-absolute top-0 end-0 m-2">
+                                        <span className="badge bg-light text-dark shadow-sm opacity-90">
+                                            {event.EventDept}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="card-body d-flex flex-column">
+                                    <h5 className="card-title fw-bold text-dark mb-3">{event.EventName}</h5>
+                                    
+                                    <div className="mb-3 small text-secondary">
+                                        <div className="d-flex align-items-center mb-2">
+                                            <i className="bi bi-calendar-event me-2 text-danger"></i>
+                                            <span>{dateDisplay}</span>
+                                        </div>
+                                        <div className="d-flex align-items-center mb-2">
+                                            <i className="bi bi-clock me-2 text-danger"></i>
+                                            <span>{event.EventTime}</span>
+                                        </div>
+                                        <div className="d-flex align-items-center">
+                                            <i className="bi bi-geo-alt me-2 text-danger"></i>
+                                            <span>{event.EventVenue}</span>
+                                        </div>
+                                    </div>
+
+                                    {event.EventDenialReason && (
+                                        <div className="mt-auto p-2 rounded bg-danger bg-opacity-10 border border-danger border-opacity-25">
+                                            <small className="text-danger d-block fw-bold">Reason for Denial:</small>
+                                            <small className="text-danger">{event.EventDenialReason}</small>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })
+            ) : (
+                <div className="col-12 text-center py-5 text-muted">
+                    <i className="bi bi-calendar-x fs-1 mb-2 d-block opacity-50"></i>
+                    No events found in this category.
+                </div>
+            )}
+        </div>
+    );
+
     return (
         <>
-            <div className='container-fluid'>
+            <div className='container-fluid' style={{ backgroundColor: '#f4f6f9', minHeight: '100vh' }}>
                 {/* Navbar */}
                 <nav
                     className="navbar navbar-dark fixed-top d-flex justify-content-between px-3"
@@ -178,7 +205,6 @@ export default function AdminHome() {
                         </div>
                     </div>
 
-                    {/* SIDEBAR MENU ITEMS */}
                     <ul className="nav flex-column mt-5 px-3">
                         <li className="nav-item mb-3">
                             <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded"
@@ -187,20 +213,17 @@ export default function AdminHome() {
                             </a>
                         </li>
 
-                        {/* ✅ BUTTON IS NOW VISIBLE TO EVERYONE */}
-                        {/* But we added onClick={handleAdminClick} to restrict access */}
                         <li className="nav-item mb-3">
                             <a
                                 className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded"
                                 href="#"
-                                onClick={handleAdminClick} // ⛔ The logic is here
+                                onClick={handleAdminClick} 
                                 style={{ cursor: "pointer" }}
                             >
                                 <i className="bi bi-people-fill"></i> Admin (Accounts)
                             </a>
                         </li>
 
-                        {/* 🛠️ DEBUG: Show current role so you know who you are */}
                         <li className="nav-item mt-2">
                             <small className="text-white-50 ms-3">
                                 Role: {role || 'Guest'}
@@ -234,42 +257,44 @@ export default function AdminHome() {
                     <div
                         className="ms-0 ms-md-5 w-100"
                         style={{
-                            marginLeft: '250px',
+                            marginLeft: window.innerWidth >= 992 ? '250px' : '0', // Responsive margin
                             paddingTop: '8rem',
                             paddingRight: '2rem',
                             paddingLeft: '2rem',
                             maxWidth: '1400px'
                         }}
                     >
-                        <div className="d-flex justify-content-between align-items-center mb-4">
-                            <h3 className="fw-bold text-dark">Submit Event</h3>
-                        </div>
-
-                        <div className="card shadow-sm border-0 mb-4 w-100">
-                            <div className="card-body">
+                        {/* Add Event Card */}
+                        <div className="card shadow-sm border-0 mb-5">
+                            <div className="card-header bg-white border-bottom-0 pt-4 px-4">
+                                <h3 className="fw-bold text-dark m-0">
+                                    <i className="bi bi-plus-circle-fill me-2 text-success"></i>
+                                    Create New Event
+                                </h3>
+                            </div>
+                            <div className="card-body p-4">
                                 <form onSubmit={submitData}>
-                                    <div className="row mb-3">
-                                        <div className="col-md-6 mb-3">
-                                            <label className="form-label fw-bold">Event Title</label>
-                                            <input type="text" className="form-control" name="title" placeholder="Enter event title" required />
+                                    <div className="row g-3">
+                                        <div className="col-md-6">
+                                            <label className="form-label fw-bold small text-uppercase text-muted">Event Title</label>
+                                            <input type="text" className="form-control bg-light border-0" name="title" placeholder="Enter event title" required />
                                         </div>
-                                        <div className="col-md-3 mb-3">
-                                            <label className="form-label fw-bold">Start Date</label>
-                                            <input type="date" className="form-control" name="startDate" required />
+                                        <div className="col-md-3">
+                                            <label className="form-label fw-bold small text-uppercase text-muted">Start Date</label>
+                                            <input type="date" className="form-control bg-light border-0" name="startDate" required />
                                         </div>
-                                        <div className="col-md-3 mb-3">
-                                            <label className="form-label fw-bold">End Date (Optional)</label>
-                                            <input type="date" className="form-control" name="endDate" />
+                                        <div className="col-md-3">
+                                            <label className="form-label fw-bold small text-uppercase text-muted">End Date <span className="fw-normal text-muted text-lowercase">(optional)</span></label>
+                                            <input type="date" className="form-control bg-light border-0" name="endDate" />
                                         </div>
-                                    </div>
-                                    <div className="row mb-3">
-                                        <div className="col-md-3 mb-3">
-                                            <label className="form-label fw-bold">Venue</label>
-                                            <input type="text" className="form-control" name="venue" placeholder="Enter venue" required />
+                                        
+                                        <div className="col-md-3">
+                                            <label className="form-label fw-bold small text-uppercase text-muted">Venue</label>
+                                            <input type="text" className="form-control bg-light border-0" name="venue" placeholder="Campus Venue" required />
                                         </div>
-                                        <div className="col-md-3 mb-3">
-                                            <label className="form-label fw-bold">Department</label>
-                                            <select className="form-select" name="dept" required>
+                                        <div className="col-md-3">
+                                            <label className="form-label fw-bold small text-uppercase text-muted">Department</label>
+                                            <select className="form-select bg-light border-0" name="dept" required>
                                                 <option value="">Select Department</option>
                                                 <option value="UA">UA</option>
                                                 <option value="CCIS">CCIS</option>
@@ -282,46 +307,47 @@ export default function AdminHome() {
                                                 <option value="CIT">CIT</option>
                                             </select>
                                         </div>
-                                        <div className="col-md-3 mb-3">
-                                            <label className="form-label fw-bold">Time</label>
-                                            <input type="time" className="form-control" name="time" required />
+                                        <div className="col-md-3">
+                                            <label className="form-label fw-bold small text-uppercase text-muted">Time</label>
+                                            <input type="time" className="form-control bg-light border-0" name="time" required />
                                         </div>
-                                        <div className="col-md-3 mb-3">
-                                            <label className="form-label fw-bold">Description</label>
-                                            <textarea className="form-control" name="description" placeholder="Enter event description" rows="3" required />
+                                        <div className="col-md-3">
+                                             <label className="form-label fw-bold small text-uppercase text-muted">Cover Photo</label>
+                                             <input type="file" className="form-control bg-light border-0" accept=".jpg, .jpeg, image/jpeg" name="photo" required />
+                                        </div>
+
+                                        <div className="col-12">
+                                            <label className="form-label fw-bold small text-uppercase text-muted">Description</label>
+                                            <textarea className="form-control bg-light border-0" name="description" placeholder="Write a brief description..." rows="3" required />
                                         </div>
                                     </div>
-                                    <div className="mb-3">
-                                        <label className="form-label fw-bold">Event Photo</label>
-                                        <input
-                                            type="file"
-                                            className="form-control"
-                                            accept=".jpg, .jpeg, image/jpeg"
-                                            name="photo"
-                                            required
-                                        />
-                                    </div>
-                                    <div className="d-flex justify-content-end">
+                                    
+                                    <div className="d-flex justify-content-end mt-4">
                                         <button
                                             type="submit"
-                                            className="btn btn-danger px-4 py-2 fw-bold"
-                                            style={{ backgroundColor: '#711212ff', border: 'none' }}
+                                            className="btn btn-primary px-5 py-2 fw-bold shadow-sm"
+                                            style={{ backgroundColor: '#711212', borderColor: '#711212' }}
                                         >
-                                            <i className="bi bi-send-fill me-2"></i> Submit
+                                            <i className="bi bi-send-fill me-2"></i> 
+                                            {role === 'admin' ? 'Create & Approve' : 'Submit for Review'}
                                         </button>
                                     </div>
                                 </form>
                             </div>
                         </div>
 
-                        <div className="card shadow-sm border-0 mb-4 w-100 mt-4">
-                            <div className="card-body">
-                                <h4 className="fw-bold mb-3">Event Management</h4>
-                                <ul className="nav nav-tabs mb-3">
+                        {/* View Events Section */}
+                        <div className="card shadow-sm border-0 mb-5">
+                             <div className="card-header bg-white border-bottom pt-4 px-4 pb-0">
+                                <div className="d-flex justify-content-between align-items-center mb-3">
+                                    <h4 className="fw-bold text-dark m-0">Event Dashboard</h4>
+                                </div>
+                                <ul className="nav nav-tabs card-header-tabs">
                                     {["submitted", "approved", "denied"].map((tab) => (
                                         <li className="nav-item" key={tab}>
                                             <button
-                                                className={`nav-link ${activeTab === tab ? "active" : ""}`}
+                                                className={`nav-link border-0 ${activeTab === tab ? "active fw-bold text-primary border-bottom border-primary border-3" : "text-muted"}`}
+                                                style={activeTab === tab ? { color: '#711212', borderColor: '#711212' } : {}}
                                                 onClick={() => setActiveTab(tab)}
                                             >
                                                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -329,7 +355,9 @@ export default function AdminHome() {
                                         </li>
                                     ))}
                                 </ul>
+                            </div>
 
+                            <div className="card-body p-4 bg-light bg-opacity-25">
                                 {activeTab === "submitted" && renderEvents(submittedEvents)}
                                 {activeTab === "approved" && renderEvents(approvedEvents)}
                                 {activeTab === "denied" && renderEvents(deniedEvents)}
