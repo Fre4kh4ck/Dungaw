@@ -570,35 +570,54 @@ export default function Home() {
                 <i className="bi bi-house-door-fill"></i> Home
               </a>
             </li>
+            {/* --- RESTRICTED LINKS (Hidden from Guests) --- */}
             {user?.role !== 'guest' && (
               <>
-                <li className="nav-item mb-2"><a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/calendar"><i className="bi bi-calendar-event-fill"></i> Calendar</a></li>
-                <li className="nav-item mb-2"><a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/events"><i className="bi bi-calendar2-event"></i> Events</a></li>
-                <li className="nav-item mb-2"><a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/chats"><i className="bi bi-chat-dots-fill"></i> Chat</a></li>
-                <li className="nav-item d-flex justify-content-center gap-3 mt-5">
-                  {/* Icons... */}
-                </li>
-                <li className="nav-item d-flex justify-content-center gap-3">
-                  <a className="nav-link p-0" href="https://sims.antiquespride.edu.ph/aims/" target="_blank" rel="noopener noreferrer">
-                    <img style={{ width: '2rem', marginTop: "clamp(14rem, 17vw, 30rem)" }} src={UALOGO} alt="UA Logo" />
-                  </a>
-                  <a className="nav-link p-0" href="https://www.facebook.com/universityofantique" target="_blank" rel="noopener noreferrer">
-                    <img style={{ width: '2rem', marginTop: "clamp(14rem, 17vw, 30rem)" }} src={FBLOGO} alt="FB Logo" />
-                  </a>
-                  <a className="nav-link p-0" href="https://www.instagram.com/universityofantique/" target="_blank" rel="noopener noreferrer">
-                    <img style={{ width: '2rem', marginTop: "clamp(14rem, 17vw, 30rem)" }} src={INSTALOGO} alt="IG Logo" />
+                <li className="nav-item mb-2">
+                  <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/calendar">
+                    <i className="bi bi-calendar-event-fill"></i> Calendar
                   </a>
                 </li>
-                <li className="nav-item mb-2 justify-content-center d-flex">
-                  <a
-                    className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg text-center"
-                    href="/login"
-                  >
-                    <i className="bi bi-box-arrow-right"></i> Log out
+                <li className="nav-item mb-2">
+                  <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/events">
+                    <i className="bi bi-calendar2-event"></i> Events
+                  </a>
+                </li>
+                <li className="nav-item mb-2">
+                  <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/chats">
+                    <i className="bi bi-chat-dots-fill"></i> Chat
                   </a>
                 </li>
               </>
             )}
+
+            {/* --- SHARED LINKS (Visible to Guests & Users) --- */}
+            {/* I moved the social icons and logout button here so Guests can see them too */}
+
+            <li className="nav-item d-flex justify-content-center gap-3 mt-5">
+              {/* Icons... */}
+            </li>
+
+            <li className="nav-item d-flex justify-content-center gap-3" style={{ marginTop: '12rem' }}>
+              <a className="nav-link p-0" href="https://sims.antiquespride.edu.ph/aims/" target="_blank" rel="noopener noreferrer">
+                <img style={{ width: '2rem', marginTop: "clamp(14rem, 17vw, 30rem)" }} src={UALOGO} alt="UA Logo" />
+              </a>
+              <a className="nav-link p-0" href="https://www.facebook.com/universityofantique" target="_blank" rel="noopener noreferrer">
+                <img style={{ width: '2rem', marginTop: "clamp(14rem, 17vw, 30rem)" }} src={FBLOGO} alt="FB Logo" />
+              </a>
+              <a className="nav-link p-0" href="https://www.instagram.com/universityofantique/" target="_blank" rel="noopener noreferrer">
+                <img style={{ width: '2rem', marginTop: "clamp(14rem, 17vw, 30rem)" }} src={INSTALOGO} alt="IG Logo" />
+              </a>
+            </li>
+
+            <li className="nav-item mb-2 justify-content-center d-flex">
+              <a
+                className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg text-center"
+                href="/login"
+              >
+                <i className="bi bi-box-arrow-right"></i> Log out
+              </a>
+            </li>
           </ul>
           <img src={STAT} alt="Sidebar design" style={{ position: "absolute", bottom: "-4.5rem", left: "50%", transform: "translateX(-55%)", width: "400px", opacity: 0.9, zIndex: -1, pointerEvents: "none" }} />
         </div>
