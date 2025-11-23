@@ -402,7 +402,7 @@ server.post("/join-event", async (req, res) => {
                   <hr>
                   <div style="text-align: center; margin: 20px 0;">
                       <p><strong>Show this QR code at the entrance:</strong></p>
-                      <img src="${qrCodeDataURL}" alt="Your Event QR Code" style="width: 200px; height: 200px;" />
+                      <img src="cid:qrcode" alt="Your Event QR Code" style="width: 200px; height: 200px;" />
                   </div>
                   <hr>
 
@@ -411,7 +411,14 @@ server.post("/join-event", async (req, res) => {
                       Sibalom Main Campus
                   </p>
               </div>
-        `
+        `,
+        attachments: [
+          {
+            filename: 'qrcode.png',
+            content: qrBuffer,
+            cid: 'qrcode' // This CID matches the src="cid:qrcode" in the HTML
+          }
+        ]
       };
 
       await transporter.sendMail(msg);
@@ -678,9 +685,9 @@ server.post('/events/add', upload.single('photo'), async (req, res) => {
       event_description: task.description,
       event_photo: file ? file.originalname : null,
       event_dept: task.dept,
-      
+
       // ✅ FIX 2: Use the variable, NOT the hardcoded string 'submitted'
-      event_status: eventStatus 
+      event_status: eventStatus
     });
 
     res.json({ success: true });
