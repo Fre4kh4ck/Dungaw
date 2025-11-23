@@ -243,12 +243,44 @@ export default function EventApproval() {
                 </div>
                 <ul className="nav flex-column mt-5 px-3">
                     <li className="nav-item mb-3">
+                        <a className="nav-link text-light d-flex align-items-center gap-2 px-3 py-2 rounded" href="/adminEvents">
+                            <i className="bi bi-calendar2-event"></i> Events
+                        </a>
+                    </li>
+                    <li className="nav-item mb-3">
+                        <a className="nav-link text-light d-flex align-items-center gap-2 px-3 py-2 rounded" href="/accounts">
+                            <i className="bi bi-people-fill"></i> Accounts
+                        </a>
+                    </li>
+                    <li className="nav-item mb-3">
                         <a
-                            className="nav-link text-light d-flex align-items-center gap-2 px-3 py-2 rounded"
-                            href="/eventApproval"
+                            className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded"
+                            href="/manageEvents"
                             style={{ backgroundColor: "rgba(255,255,255,0.3)" }}
                         >
-                            <i className="bi bi-check2-square"></i> Event Approval
+                            <i className="bi bi-collection"></i> Manage Events
+                        </a>
+                    </li>
+
+                    <li className="nav-item mb-2">
+                        <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded" href="/admin-reports">
+                            <i className="bi bi-file-earmark-bar-graph"></i> Event Reports
+                        </a>
+                    </li>
+
+                    <li className="nav-item mb-2">
+                        <a className="nav-link text-light px-3 py-2 d-flex align-items-center gap-2" href="/event-scanner">
+                            <i className="bi bi-qr-code-scan"></i> Scanner
+                        </a>
+                    </li>
+
+
+                    <li className="nav-item mb-2 justify-content-center d-flex" style={{ marginTop: "20rem" }} >
+                        <a
+                            className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded text-center"
+                            href="/admin"
+                        >
+                            <i className="bi bi-box-arrow-right"></i> Log out
                         </a>
                     </li>
                 </ul>

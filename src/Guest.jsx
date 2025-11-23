@@ -316,7 +316,7 @@ export default function Home() {
                 <i className="bi bi-house-door-fill"></i> Home
               </a>
             </li>
-            <li className="nav-item d-flex justify-content-center gap-3 mt-5">
+            <li className="nav-item d-flex justify-content-center gap-3">
               <a className="nav-link p-0" href="https://sims.antiquespride.edu.ph/aims/" target="_blank" rel="noopener noreferrer">
                 <img style={{ width: '2rem', marginTop: "clamp(14rem, 17vw, 30rem)" }} src={UALOGO} alt="UA Logo" />
               </a>

@@ -52,7 +52,7 @@ export default function AdminHome() {
         }
     };
 
-    // --- 4. SUBMIT DATA (THE LOGIC FIX IS HERE) ---
+    // --- 4. SUBMIT DATA ---
     const submitData = async (e) => {
         e.preventDefault();
         const file = e.target.photo.files[0];
@@ -76,8 +76,6 @@ export default function AdminHome() {
         formData.append("photo", file);
         formData.append("dept", e.target.dept.value);
 
-        // ✅ CRITICAL FIX: Determine status based on Role
-        // If Admin -> 'approved'. If Staff -> 'submitted'.
         const eventStatus = (role === 'admin') ? 'approved' : 'submitted';
         formData.append("status", eventStatus);
 
@@ -86,7 +84,6 @@ export default function AdminHome() {
                 headers: { "Content-Type": "multipart/form-data" },
             });
             
-            // Show appropriate message
             if(role === 'admin') {
                 alert("✅ Event Created and Auto-Approved!");
             } else {
@@ -119,7 +116,8 @@ export default function AdminHome() {
                     }
 
                     return (
-                        <div key={event.EventID} className="col-md-6 col-lg-4 mb-4">
+                        // RESPONSIVE FIX: Added col-12 so it takes full width on phone
+                        <div key={event.EventID} className="col-12 col-md-6 col-lg-4 mb-4">
                             <div className="card shadow-sm h-100 border-0">
                                 <div style={{ position: 'relative', height: '200px' }}>
                                     <img
@@ -195,18 +193,22 @@ export default function AdminHome() {
                 {/* Sidebar */}
                 <div
                     className={`border-end text-light position-fixed top-0 start-0 h-100 sidebar d-flex flex-column ${sidebarOpen ? "show" : ""}`}
-                    style={{ width: '250px', zIndex: 1040, boxShadow: '2px 0 10px rgba(0,0,0,0.1)', backgroundColor: '#711212ff' }}
+                    style={{ 
+                        width: '250px', 
+                        zIndex: 1040, 
+                        boxShadow: '2px 0 10px rgba(0,0,0,0.1)', 
+                        backgroundColor: '#711212ff',
+                        // RESPONSIVE FIX: If on phone and closed, move it left. If open, show it.
+                        left: (window.innerWidth < 992 && !sidebarOpen) ? '-250px' : '0',
+                        transition: 'left 0.3s ease-in-out'
+                    }}
                 >
-                    <div className="px-4 pt-4 pb-2 border-bottom d-flex align-items-center gap-2">
-                        <img src={UALOGO} alt="UA logo" style={{ width: '40px' }} />
-                        <div>
-                            <div className="fw-bold" style={{ fontSize: '1.1rem' }}>University of Antique</div>
-                            <div className="text-muted" style={{ fontSize: '0.85rem' }}>Sibalom Campus</div>
-                        </div>
-                    </div>
 
-                    <ul className="nav flex-column mt-5 px-3">
-                        <li className="nav-item mb-3">
+                    {/* RESPONSIVE FIX: Added 'flex-grow-1' to make the list take available space */}
+                    <ul className="nav flex-column mt-5 px-3 flex-grow-1">
+                        
+                        {/* Events Button with 8rem margin top */}
+                        <li className="nav-item mb-3" style={{ marginTop: '8rem' }}>
                             <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded"
                                 href="/adminEvents" style={{ backgroundColor: 'rgba(255, 255, 255, 0.3)' }}>
                                 <i className="bi bi-calendar2-event"></i> Events
@@ -230,7 +232,9 @@ export default function AdminHome() {
                             </small>
                         </li>
 
-                        <li className="nav-item mb-2 justify-content-center d-flex" style={{ marginTop: "28rem" }}>
+                        {/* --- FIX: Removed 'mt-auto' and 'marginBottom' --- */}
+                        {/* --- Added 'mt-5' to position it just below the content instead of at the bottom --- */}
+                        <li className="nav-item mb-2 justify-content-center d-flex" style={{ marginTop: '26rem' }}>
                             <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded text-center" href="/admin">
                                 <i className="bi bi-box-arrow-right"></i> Log out
                             </a>
@@ -275,24 +279,25 @@ export default function AdminHome() {
                             <div className="card-body p-4">
                                 <form onSubmit={submitData}>
                                     <div className="row g-3">
-                                        <div className="col-md-6">
+                                        {/* RESPONSIVE FIX: Added col-12 to all inputs below so they stack on mobile */}
+                                        <div className="col-12 col-md-6">
                                             <label className="form-label fw-bold small text-uppercase text-muted">Event Title</label>
                                             <input type="text" className="form-control bg-light border-0" name="title" placeholder="Enter event title" required />
                                         </div>
-                                        <div className="col-md-3">
+                                        <div className="col-12 col-md-3">
                                             <label className="form-label fw-bold small text-uppercase text-muted">Start Date</label>
                                             <input type="date" className="form-control bg-light border-0" name="startDate" required />
                                         </div>
-                                        <div className="col-md-3">
+                                        <div className="col-12 col-md-3">
                                             <label className="form-label fw-bold small text-uppercase text-muted">End Date <span className="fw-normal text-muted text-lowercase">(optional)</span></label>
                                             <input type="date" className="form-control bg-light border-0" name="endDate" />
                                         </div>
                                         
-                                        <div className="col-md-3">
+                                        <div className="col-12 col-md-3">
                                             <label className="form-label fw-bold small text-uppercase text-muted">Venue</label>
                                             <input type="text" className="form-control bg-light border-0" name="venue" placeholder="Campus Venue" required />
                                         </div>
-                                        <div className="col-md-3">
+                                        <div className="col-12 col-md-3">
                                             <label className="form-label fw-bold small text-uppercase text-muted">Department</label>
                                             <select className="form-select bg-light border-0" name="dept" required>
                                                 <option value="">Select Department</option>
@@ -307,11 +312,11 @@ export default function AdminHome() {
                                                 <option value="CIT">CIT</option>
                                             </select>
                                         </div>
-                                        <div className="col-md-3">
+                                        <div className="col-12 col-md-3">
                                             <label className="form-label fw-bold small text-uppercase text-muted">Time</label>
                                             <input type="time" className="form-control bg-light border-0" name="time" required />
                                         </div>
-                                        <div className="col-md-3">
+                                        <div className="col-12 col-md-3">
                                              <label className="form-label fw-bold small text-uppercase text-muted">Cover Photo</label>
                                              <input type="file" className="form-control bg-light border-0" accept=".jpg, .jpeg, image/jpeg" name="photo" required />
                                         </div>
