@@ -54,3 +54,9 @@ export const users = pgTable('users', {
   picture: text('picture'),
   created_at: timestamp('created_at').defaultNow(),
 });
+
+export const user_activity = pgTable('user_activity', {
+  user_id: integer('user_id').references(() => users.id).primaryKey(),
+  created_at: timestamp('created_at').defaultNow(),
+  last_signin_at: timestamp('last_signin_at').defaultNow(),
+});

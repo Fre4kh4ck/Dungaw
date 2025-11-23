@@ -4,7 +4,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { db } from './db.js';
-import { accounts, events, chat_messages, joined_events, users } from './drizzle-schema.js';
+import { accounts, events, chat_messages, joined_events, users, user_activity } from './drizzle-schema.js';
 import { eq, and, gt, sql, count, desc, or } from 'drizzle-orm';
 import verifyToken from './middlewares/verifyToken.js';
 import multer from 'multer';
@@ -502,6 +502,7 @@ server.post("/google-login", async (req, res) => {
     const usersResult = await db.select().from(users).where(eq(users.email, email));
 
     let user = usersResult.length > 0 ? usersResult[0] : null;
+    let isNewUser = false;
 
     if (!user) {
       const insertResult = await db.insert(users).values({
@@ -518,10 +519,22 @@ server.post("/google-login", async (req, res) => {
         email,
         picture,
       };
-
+      isNewUser = true;
 
       console.log("Inserted new user:", user);
     }
+
+    // Track user activity
+    await db.insert(user_activity).values({
+      user_id: user.id,
+      created_at: isNewUser ? sql`NOW()` : undefined, // Only set on new user
+      last_signin_at: sql`NOW()`,
+    }).onConflictDoUpdate({
+      target: user_activity.user_id,
+      set: {
+        last_signin_at: sql`NOW()`,
+      },
+    });
 
     const token = jwt.sign(
       {
