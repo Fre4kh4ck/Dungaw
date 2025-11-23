@@ -368,6 +368,7 @@ server.post("/join-event", async (req, res) => {
     });
 
     const qrBuffer = await qr.toBuffer(qrData, { type: 'png' });
+    const qrCodeDataURL = `data:image/png;base64,${qrBuffer.toString('base64')}`;
 
     // 3. Save to database
     await db.insert(joined_events).values({

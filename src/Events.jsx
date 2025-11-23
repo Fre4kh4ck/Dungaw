@@ -86,13 +86,13 @@ export default function Events() {
             setShowConfirmModal(false);
             setJoinedEvent(eventToJoin);
             setShowJoinModal(true);
-            
+
             // ✅ 3. OPTIMISTIC UPDATE: Increase count immediately on success
             setJoinCounts(prev => ({
                 ...prev,
                 [eventToJoin.EventID]: (prev[eventToJoin.EventID] || 0) + 1
             }));
-            
+
             setEventToJoin(null);
 
         } catch (err) {
@@ -114,7 +114,7 @@ export default function Events() {
     const handleCloseJoinModal = () => {
         setShowJoinModal(false);
         setJoinedEvent(null);
-        setQrCodeUrl(""); 
+        setQrCodeUrl("");
     };
 
     // Helper Functions
@@ -212,9 +212,9 @@ export default function Events() {
         if (filteredEvents.length > 0) {
             fetchJoinCounts();
         }
-    }, [filteredEvents]); 
-    
-    
+    }, [filteredEvents]);
+
+
     return (
         <>
             <div className='container-fluid'>
@@ -232,10 +232,10 @@ export default function Events() {
 
                 {/* Sidebar - Responsive Logic Added */}
                 <div className={`border-end text-light position-fixed top-0 start-0 h-100 sidebar d-flex flex-column ${sidebarOpen ? "show" : ""}`}
-                    style={{ 
-                        width: '250px', 
-                        zIndex: 1040, 
-                        boxShadow: '2px 0 10px rgba(0,0,0,0.1)', 
+                    style={{
+                        width: '250px',
+                        zIndex: 1040,
+                        boxShadow: '2px 0 10px rgba(0,0,0,0.1)',
                         backgroundColor: '#711212ff',
                         // Hide sidebar on mobile unless open, show on desktop
                         transform: isLargeScreen ? "translateX(0)" : (sidebarOpen ? "translateX(0)" : "translateX(-100%)"),
@@ -310,40 +310,40 @@ export default function Events() {
             </div>
 
             {/* Main Content Wrapper - Adjusts margin based on screen size */}
-            <div style={{ 
-                marginLeft: isLargeScreen ? "250px" : "0", 
+            <div style={{
+                marginLeft: isLargeScreen ? "250px" : "0",
                 transition: "margin-left 0.3s ease-in-out",
                 width: isLargeScreen ? "calc(100% - 250px)" : "100%",
                 overflowX: "hidden" // Prevents horizontal scroll
             }}>
-                
+
                 {/* Top Image + Search Bar */}
                 <div className="container-fluid p-0">
                     <div className="position-relative" style={{ marginTop: '6rem', width: '100%', minHeight: '60vh' }}>
-                        
+
                         {/* Fix 1: Make background image responsive */}
                         <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-                            <img src={BG1} alt="" 
-                                style={{ 
-                                    width: "100%", 
-                                    minHeight: "60vh", 
+                            <img src={BG1} alt=""
+                                style={{
+                                    width: "100%",
+                                    minHeight: "60vh",
                                     objectFit: "cover",
-                                    opacity: "0.8", 
-                                }} 
+                                    opacity: "0.8",
+                                }}
                             />
                             <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", background: "linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.7))" }}></div>
                         </div>
 
                         {/* Text Overlay */}
-                        <div style={{ 
-                            position: "absolute", 
-                            top: "50%", 
-                            left: "50%", 
-                            transform: "translate(-50%, -50%)", 
-                            textAlign: "center", 
-                            color: "#fff", 
-                            width: "90%", 
-                            maxWidth: "800px" 
+                        <div style={{
+                            position: "absolute",
+                            top: "50%",
+                            left: "50%",
+                            transform: "translate(-50%, -50%)",
+                            textAlign: "center",
+                            color: "#fff",
+                            width: "90%",
+                            maxWidth: "800px"
                         }}>
                             <h1 style={{ fontWeight: "bold", fontSize: "clamp(1.8rem, 4vw, 2.5rem)" }}>
                                 <span style={{ color: "#00AEEF" }}>Live Today.</span> Live Campus Life.
@@ -353,37 +353,37 @@ export default function Events() {
                             </p>
 
                             {/* Fix 2: Search Bar Responsive Flex */}
-                            <div style={{ 
-                                display: "flex", 
+                            <div style={{
+                                display: "flex",
                                 flexDirection: "row",
                                 flexWrap: "wrap", // Allows wrapping on mobile
-                                justifyContent: "center", 
-                                alignItems: "center", 
-                                width: "100%", 
-                                margin: "0 auto", 
-                                background: "#fff", 
-                                borderRadius: "8px", 
-                                padding: "5px 10px" 
+                                justifyContent: "center",
+                                alignItems: "center",
+                                width: "100%",
+                                margin: "0 auto",
+                                background: "#fff",
+                                borderRadius: "8px",
+                                padding: "5px 10px"
                             }}>
                                 <input type="text" placeholder="Search Events, Categories, Location..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    style={{ 
+                                    style={{
                                         flex: "1 1 200px", // Grow, shrink, base width
-                                        border: "none", 
-                                        outline: "none", 
-                                        padding: "10px", 
-                                        fontSize: "1rem", 
+                                        border: "none",
+                                        outline: "none",
+                                        padding: "10px",
+                                        fontSize: "1rem",
                                         borderRadius: "5px",
                                         minWidth: "0" // Prevents overflow
                                     }}
                                 />
                                 <select value={selectedDept} onChange={(e) => setSelectedDept(e.target.value)}
-                                    style={{ 
-                                        border: "none", 
-                                        outline: "none", 
-                                        padding: "10px", 
-                                        fontSize: "1rem", 
+                                    style={{
+                                        border: "none",
+                                        outline: "none",
+                                        padding: "10px",
+                                        fontSize: "1rem",
                                         background: "transparent",
                                         borderLeft: isLargeScreen ? "1px solid #eee" : "none",
                                         marginTop: isLargeScreen ? "0" : "5px"
@@ -423,7 +423,7 @@ export default function Events() {
                                         />
 
                                         <div className="card-body d-flex flex-column">
-                                            <p className="text-muted mb-1" style={{fontSize: '0.9rem'}}>
+                                            <p className="text-muted mb-1" style={{ fontSize: '0.9rem' }}>
                                                 {formatEventDateRange(event.EventStartDate, event.EventEndDate)} • {event.EventVenue}
                                             </p>
                                             <h5 className="card-title fw-bold text-truncate">
@@ -589,7 +589,7 @@ export default function Events() {
                                         </div>
                                     )}
                                 </div>
-                                
+
                                 <p className="text-muted mb-0">
                                     A copy of this ticket has been sent to your email.
                                 </p>
