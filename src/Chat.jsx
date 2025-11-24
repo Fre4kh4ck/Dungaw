@@ -41,7 +41,21 @@ const ChatStyles = () => (
     .chat-avatar { width: 50px; height: 50px; object-fit: cover; }
 
     .chat-window-body { background-color: #f5f5f5; }
-    .chat-bubble { padding: 10px 15px; border-radius: 20px; max-width: 70%; word-wrap: break-word; }
+    
+    /* --- FIXED CHAT BUBBLE CSS --- */
+    .chat-bubble { 
+      padding: 10px 15px; 
+      border-radius: 20px; 
+      
+      /* New properties to fix stacking letters */
+      width: fit-content; 
+      display: inline-block;
+      max-width: 100%; 
+      
+      word-wrap: break-word; 
+    }
+    /* ----------------------------- */
+
     .chat-bubble.me { background-color: #711212; color: white; border-bottom-right-radius: 5px; }
     .chat-bubble.other { background-color: #ffffff; color: #333; border: 1px solid #e9e9e9; border-bottom-left-radius: 5px; }
     .chat-timestamp { font-size: 0.75rem; color: #6c757d; margin-top: 2px; }
@@ -113,7 +127,7 @@ export default function Chats() {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages, activeChatEvent]); // Add activeChatEvent to scroll on open
+  }, [messages, activeChatEvent]); 
 
   useEffect(() => {
     let poll;
@@ -147,12 +161,9 @@ export default function Chats() {
       }).catch(err => console.error("Failed to mark as read", err));
     };
 
-    // UNIFIED LOGIC: Set Active Chat for BOTH Mobile and Desktop
     setMessages([]);
     setActiveChatEvent(event);
     markAsRead();
-
-    // Note: We removed the 'navigate' call here to prevent the white screen.
   };
 
   const handleSendMessage = async () => {
@@ -200,7 +211,6 @@ export default function Chats() {
   const activeChatData = activeChatEvent ? getEventData(activeChatEvent) : null;
 
   // --- REUSABLE CHAT CONTENT RENDERER ---
-  // This is used by both the Desktop Right Panel and the Mobile Modal
   const renderChatContent = () => {
     if (!activeChatData) return null;
     return (
@@ -233,7 +243,8 @@ export default function Chats() {
               const isMe = m.user_email === currentUserEmail;
               return (
                 <div key={idx} className={`d-flex mb-3 ${isMe ? 'justify-content-end' : 'justify-content-start'}`}>
-                  <div style={{ maxWidth: '85%' }}>
+                  {/* Wrapper width control */}
+                  <div style={{ maxWidth: '85%' }} className={isMe ? 'd-flex flex-column align-items-end' : 'd-flex flex-column align-items-start'}>
                     <div className={`small text-muted ${isMe ? 'text-end' : ''}`}>
                       {m.user_email.split('@')[0]}
                     </div>
@@ -295,7 +306,6 @@ export default function Chats() {
         {/* Sidebar */}
         <div className={`border-end text-light position-fixed top-0 start-0 h-100 sidebar d-flex flex-column ${sidebarOpen ? "show" : ""}`}
           style={{ width: '250px', zIndex: 1040, boxShadow: '2px 0 10px rgba(0,0,0,0.1)', backgroundColor: '#711212ff' }}>
-          {/* Sidebar content same as before... */}
           <div className="px-4 pt-4 pb-2 border-bottom d-flex align-items-center gap-2">
             <img src={UALOGO} alt="UA logo" style={{ width: '40px' }} />
             <div>
@@ -436,7 +446,6 @@ export default function Chats() {
       </div>
 
       {/* --- MOBILE MODAL (POPUP) --- */}
-      {/* This only shows if we are on a small screen AND have an active chat */}
       {!isLargeScreen && activeChatEvent && (
         <div className="mobile-chat-modal">
           <div className="mobile-chat-content animate__animated animate__fadeInUp">
