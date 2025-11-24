@@ -66,17 +66,19 @@ server.get('/user-activity', async (req, res) => {
 
 server.post("/verify-ticket", async (req, res) => {
   try {
-    const { email, eventId, ticketId } = req.body;
+    // ✅ 1. Accept 'type' ('IN' or 'OUT') from the frontend
+    const { email, eventId, ticketId, type } = req.body;
 
-    // 1. Check for missing data
-    if (!email || !eventId || !ticketId) {
+    // Check for missing data
+    if (!email || !eventId || !ticketId || !type) {
       return res.status(400).json({
         status: "error",
-        message: "Invalid QR Code: Missing required data."
+        message: "Invalid Scan: Missing data or Scan Type."
       });
     }
 
     // 2. Find the user's ticket AND the Event Name
+    // This query ensures the ticket belongs to the specific Event ID being scanned.
     const result = await db.select({
       user_email: joined_events.user_email,
       event_id: joined_events.event_id,
@@ -84,44 +86,67 @@ server.post("/verify-ticket", async (req, res) => {
       time_in: joined_events.time_in,
       time_out: joined_events.time_out,
       event_name: events.event_name
-    }).from(joined_events).innerJoin(events, eq(joined_events.event_id, events.event_id)).where(and(eq(joined_events.user_email, email), eq(joined_events.event_id, eventId), eq(joined_events.ticket_id, ticketId)));
+    })
+      .from(joined_events)
+      .innerJoin(events, eq(joined_events.event_id, events.event_id))
+      .where(and(
+        eq(joined_events.user_email, email),
+        eq(joined_events.event_id, eventId),
+        eq(joined_events.ticket_id, ticketId)
+      ));
 
     const ticket = result[0];
 
     // 3. Check if the ticket is valid
+    // If this is null, it means the ticket doesn't exist OR it belongs to a different event
     if (!ticket) {
       return res.status(404).json({
         status: "error",
-        message: "❌ Ticket Not Found. Not registered for this event."
+        message: "❌ Ticket Not Found or Wrong Event."
       });
     }
 
-    // 4. Handle the Time In / Time Out logic
     const now = new Date();
     const friendlyTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
-    // --- THIS IS THE FIRST SCAN (TIME IN) ---
-    if (ticket.time_in === null) {
-      await db.update(joined_events).set({ time_in: now }).where(and(eq(joined_events.user_email, email), eq(joined_events.event_id, eventId)));
+    // =========================================================
+    // ✅ STRICT MODE: TIME IN
+    // =========================================================
+    if (type === 'IN') {
 
-      // --- Send TIME IN Email ---
+      // If they have already timed in, DENY the scan.
+      if (ticket.time_in !== null) {
+        return res.status(409).json({
+          status: "warning",
+          message: "⚠️ User already Scanned IN! (Did not scan out yet)",
+          email: ticket.user_email,
+          time: ticket.time_in
+        });
+      }
+
+      // --- PERFORM TIME IN UPDATE ---
+      await db.update(joined_events)
+        .set({ time_in: now })
+        .where(and(eq(joined_events.user_email, email), eq(joined_events.event_id, eventId)));
+
+      // --- Send TIME IN Email (Original Code) ---
       try {
         const msg = {
           to: ticket.user_email,
           from: process.env.SMTP_FROM,
           subject: `Scan Confirmation: ${ticket.event_name}`,
           html: `
-            <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-              <h2 style="color: #006400;">Scan Successful!</h2>
-              <p>This email confirms your attendance for the event:</p>
-              <p><strong>Event:</strong> ${ticket.event_name}</p>
-              <p><strong>Status:</strong> <span style="color: #006400; font-weight: bold;">TIME IN</span></p>
-              <p><strong>Time:</strong> ${friendlyTime}</p>
-              <p style="margin-top: 20px; font-size: 0.9em; color: #777;">
-                University of Antique Event Management
-              </p>
-            </div>
-          `,
+                <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+                    <h2 style="color: #006400;">Scan Successful!</h2>
+                    <p>This email confirms your attendance for the event:</p>
+                    <p><strong>Event:</strong> ${ticket.event_name}</p>
+                    <p><strong>Status:</strong> <span style="color: #006400; font-weight: bold;">TIME IN</span></p>
+                    <p><strong>Time:</strong> ${friendlyTime}</p>
+                    <p style="margin-top: 20px; font-size: 0.9em; color: #777;">
+                    University of Antique Event Management
+                    </p>
+                </div>
+                `,
         };
         await transporter.sendMail(msg);
       } catch (emailError) {
@@ -134,29 +159,54 @@ server.post("/verify-ticket", async (req, res) => {
         email: ticket.user_email,
         time: now
       });
+    }
 
-      // --- THIS IS THE SECOND SCAN (TIME OUT) ---
-    } else if (ticket.time_out === null) {
-      await db.update(joined_events).set({ time_out: now }).where(and(eq(joined_events.user_email, email), eq(joined_events.event_id, eventId)));
+    // =========================================================
+    // ✅ STRICT MODE: TIME OUT
+    // =========================================================
+    else if (type === 'OUT') {
 
-      // --- Send TIME OUT Email ---
+      // Check 1: User must have timed in first
+      if (ticket.time_in === null) {
+        return res.status(400).json({
+          status: "error",
+          message: "❌ Error: User has NOT Timed In yet."
+        });
+      }
+
+      // Check 2: User must not have already timed out
+      if (ticket.time_out !== null) {
+        return res.status(409).json({
+          status: "warning",
+          message: "⚠️ User already Scanned OUT.",
+          email: ticket.user_email,
+          time: ticket.time_out
+        });
+      }
+
+      // --- PERFORM TIME OUT UPDATE ---
+      await db.update(joined_events)
+        .set({ time_out: now })
+        .where(and(eq(joined_events.user_email, email), eq(joined_events.event_id, eventId)));
+
+      // --- Send TIME OUT Email (Original Code) ---
       try {
         const msg = {
           to: ticket.user_email,
           from: process.env.SMTP_FROM,
           subject: `Scan Confirmation: ${ticket.event_name}`,
           html: `
-            <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-              <h2 style="color: #b8860b;">Scan Successful!</h2>
-              <p>This email confirms your checkout for the event:</p>
-              <p><strong>Event:</strong> ${ticket.event_name}</p>
-              <p><strong>Status:</strong> <span style="color: #b8860b; font-weight: bold;">TIME OUT</span></p>
-              <p><strong>Time:</strong> ${friendlyTime}</p>
-              <p style="margin-top: 20px; font-size: 0.9em; color: #777;">
-                University of Antique Event Management
-              </p>
-            </div>
-          `,
+                <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+                    <h2 style="color: #b8860b;">Scan Successful!</h2>
+                    <p>This email confirms your checkout for the event:</p>
+                    <p><strong>Event:</strong> ${ticket.event_name}</p>
+                    <p><strong>Status:</strong> <span style="color: #b8860b; font-weight: bold;">TIME OUT</span></p>
+                    <p><strong>Time:</strong> ${friendlyTime}</p>
+                    <p style="margin-top: 20px; font-size: 0.9em; color: #777;">
+                    University of Antique Event Management
+                    </p>
+                </div>
+                `,
         };
         await transporter.sendMail(msg);
       } catch (emailError) {
@@ -164,20 +214,16 @@ server.post("/verify-ticket", async (req, res) => {
       }
 
       return res.json({
-        status: "warning", // Use 'warning' for time out
+        status: "success", // Success because it worked
         message: "✅ TIME OUT Successful!",
         email: ticket.user_email,
         time: now
       });
+    }
 
-      // --- THIS IS THE THIRD (OR MORE) SCAN ---
-    } else {
-      return res.status(409).json({ // 409 Conflict
-        status: "error",
-        message: "❌ Already Scanned. User has already timed in and timed out.",
-        email: ticket.user_email,
-        time: ticket.time_out
-      });
+    // fallback if type is weird
+    else {
+      return res.status(400).json({ status: "error", message: "Invalid scan mode selected." });
     }
 
   } catch (err) {
@@ -186,24 +232,6 @@ server.post("/verify-ticket", async (req, res) => {
       status: "error",
       message: "Server Error. Please check logs."
     });
-  }
-});
-
-
-server.put("/chats/mark-all-read", async (req, res) => {
-  const { email } = req.body;
-
-  if (!email) {
-    return res.status(400).json({ error: "Missing email" });
-  }
-
-  try {
-    // Update the 'last_read_at' timestamp for ALL events this user has joined
-    await db.update(joined_events).set({ last_read_at: new Date() }).where(eq(joined_events.user_email, email));
-    res.json({ success: true });
-  } catch (err) {
-    console.error("Error marking all chats as read:", err);
-    res.status(500).json({ error: "Server error" });
   }
 });
 

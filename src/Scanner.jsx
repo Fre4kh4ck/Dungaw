@@ -1,12 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react'; // ✅ 1. Import useRef
+import React, { useState, useEffect, useRef } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import "../css/style.css";
 import UALOGO from './assets/Ualogo.png';
-import FBLOGO from './assets/fblogo.png'
-import INSTALOGO from './assets/instalogo.png'
-import STAT from './assets/stat.png'
+import STAT from './assets/stat.png';
 import axios from 'axios';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 
@@ -18,8 +16,12 @@ export default function Scanner() {
     const [verificationResult, setVerificationResult] = useState("");
     const [verificationStatus, setVerificationStatus] = useState("");
 
-    // ✅ 2. Create the ref *outside* the useEffect
-    // This lock will be shared across all re-renders and effect runs
+    // --- ✅ NEW STATE VARIABLES ---
+    const [events, setEvents] = useState([]);
+    const [selectedEventId, setSelectedEventId] = useState("");
+    const [scanMode, setScanMode] = useState("IN"); // Default is "Time In"
+
+    // Lock reference
     const isProcessingRef = useRef(false);
 
     useEffect(() => {
@@ -32,29 +34,45 @@ export default function Scanner() {
         setSidebarOpen(!sidebarOpen);
     };
 
-    // --- ✅ REBUILT SCANNER LOGIC ---
+    // --- ✅ 1. FETCH EVENTS ON LOAD ---
     useEffect(() => {
-        // We no longer define 'let isProcessing' here
+        const fetchEvents = async () => {
+            try {
+                // This gets the list for your dropdown
+                const response = await axios.get(`${import.meta.env.VITE_API_URL}/events`);
+                setEvents(response.data);
+            } catch (error) {
+                console.error("Error fetching events:", error);
+                setVerificationResult("Error: Could not load event list.");
+                setVerificationStatus("error");
+            }
+        };
+        fetchEvents();
+    }, []);
 
+    // --- ✅ 2. UPDATED SCANNER LOGIC ---
+    useEffect(() => {
         const scanner = new Html5QrcodeScanner(
             "qr-scanner",
-            {
-                qrbox: { width: 250, height: 250 },
-                fps: 10,
-            },
+            { qrbox: { width: 250, height: 250 }, fps: 10 },
             false
         );
 
         async function onScanSuccess(decodedText) {
-            // ✅ 3. Check the ref's '.current' property
-            if (isProcessingRef.current) {
-                return; // If already processing, stop
+            // Check Lock
+            if (isProcessingRef.current) return;
+
+            // Check if Event is Selected
+            if (!selectedEventId) {
+                setVerificationResult("⚠️ Please select an event from the list first.");
+                setVerificationStatus("warning");
+                return;
             }
-            // ✅ 4. Set the ref's '.current' property to lock it
+
+            // Lock Process
             isProcessingRef.current = true;
 
-            // Pause the scanner
-            if (scanner && scanner.getState() === 2 /* SCANNING */) {
+            if (scanner && scanner.getState() === 2) {
                 scanner.pause();
             }
 
@@ -65,26 +83,38 @@ export default function Scanner() {
             try {
                 const qrData = JSON.parse(decodedText);
 
+                // ✅ CONFLICT CHECK: Does Ticket Event ID match Selected Event ID?
+                if (String(qrData.eventId) !== String(selectedEventId)) {
+                    throw { 
+                        customError: true, 
+                        message: "❌ CONFLICT: This ticket belongs to a different event.", 
+                        status: "error" 
+                    };
+                }
+
+                // ✅ SEND REQUEST WITH 'type' (IN or OUT)
                 const response = await axios.post(`${import.meta.env.VITE_API_URL}/verify-ticket`, {
                     email: qrData.email,
                     eventId: qrData.eventId,
-                    ticketId: qrData.ticketId
+                    ticketId: qrData.ticketId,
+                    type: scanMode // <--- Sending 'IN' or 'OUT' to backend
                 });
 
                 const { message, email, status, time } = response.data;
-                let timeString = "";
-                if (time) {
-                    timeString = ` at ${new Date(time).toLocaleTimeString()}`;
-                }
+                let timeString = time ? ` at ${new Date(time).toLocaleTimeString()}` : "";
+                
                 setVerificationResult(`${message} (User: ${email})${timeString}`);
                 setVerificationStatus(status);
 
             } catch (err) {
-                if (err.response) {
+                if (err.customError) {
+                    setVerificationResult(err.message);
+                    setVerificationStatus(err.status);
+                } else if (err.response) {
                     setVerificationResult(err.response.data.message);
                     setVerificationStatus(err.response.data.status || "error");
                 } else if (err instanceof SyntaxError) {
-                    setVerificationResult("Invalid QR Code: Not a valid ticket format.");
+                    setVerificationResult("Invalid QR Code.");
                     setVerificationStatus("error");
                 } else {
                     setVerificationResult("Scan failed. Please try again.");
@@ -92,14 +122,12 @@ export default function Scanner() {
                 }
             } finally {
                 setIsLoading(false);
-                // After 2 seconds, resume scanning
                 setTimeout(() => {
-                    if (scanner && scanner.getState() === 3 /* PAUSED */) {
+                    if (scanner && scanner.getState() === 3) {
                         scanner.resume();
                     }
-                    // ✅ 5. Release the lock *inside* the timeout
                     isProcessingRef.current = false;
-                }, 2000); // 2-second delay
+                }, 2000);
             }
         }
 
@@ -109,15 +137,13 @@ export default function Scanner() {
 
         scanner.render(onScanSuccess, onScanFailure);
 
-        // Cleanup function
         return () => {
             scanner.clear().catch(error => {
                 console.error("Failed to clear scanner on unmount.", error);
             });
         };
-    }, []); // Empty dependency array is correct
+    }, [selectedEventId, scanMode]); // ✅ Re-run if Event or Mode changes
 
-    // --- Function to get the alert color ---
     const getAlertClass = () => {
         if (verificationStatus === 'success') return 'alert-success';
         if (verificationStatus === 'warning') return 'alert-warning';
@@ -128,7 +154,7 @@ export default function Scanner() {
     return (
         <>
             {/* ------------------------------------------------------------------- */}
-            {/* ------------------- NAVBAR AND SIDEBAR (Unchanged) ----------------- */}
+            {/* ------------------- NAVBAR AND SIDEBAR (UNCHANGED) ----------------- */}
             {/* ------------------------------------------------------------------- */}
             <div className='container-fluid'>
                 <nav
@@ -170,28 +196,21 @@ export default function Scanner() {
                                 <i className="bi bi-people-fill"></i> Accounts
                             </a>
                         </li>
-
                         <li className="nav-item mb-3">
-                            <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/userAccounts"
-                            >
+                            <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/userAccounts">
                                 <i className="bi bi-google"></i> User Accounts
                             </a>
                         </li>
                         <li className="nav-item mb-3">
-                            <a
-                                className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded"
-                                href="/manageEvents"
-                            >
+                            <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded" href="/manageEvents">
                                 <i className="bi bi-collection"></i> Manage Events
                             </a>
                         </li>
-
                         <li className="nav-item mb-2">
                             <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded" href="/admin-reports">
                                 <i className="bi bi-file-earmark-bar-graph"></i> Event Reports
                             </a>
                         </li>
-
                         <li className="nav-item mb-2">
                             <a className="nav-link text-light px-3 py-2 d-flex align-items-center gap-2" href="/event-scanner"
                                 style={{ backgroundColor: "rgba(255,255,255,0.3)" }}>
@@ -205,23 +224,15 @@ export default function Scanner() {
                         </li>
                     </ul>
 
-                    <img
-                        src={STAT}
-                        alt="Sidebar design"
-                        style={{
-                            position: "absolute",
-                            bottom: "-4.5rem",
-                            left: "50%",
-                            transform: "translateX(-55%)",
-                            width: "400px",
-                            opacity: 0.9,
-                            zIndex: -1,
-                            pointerEvents: "none"
-                        }}
+                    <img src={STAT} alt="Sidebar design"
+                        style={{ position: "absolute", bottom: "-4.5rem", left: "50%", transform: "translateX(-55%)", width: "400px", opacity: 0.9, zIndex: -1, pointerEvents: "none" }}
                     />
                 </div>
             </div>
 
+            {/* ------------------------------------------------------------------- */}
+            {/* ------------------- MAIN CONTENT AREA ----------------------------- */}
+            {/* ------------------------------------------------------------------- */}
             <div className="container-fluid"
                 style={{
                     marginTop: '7rem',
@@ -237,6 +248,66 @@ export default function Scanner() {
                                 <h4 className="mb-0 fw-bold"><i className="bi bi-qr-code-scan me-2"></i>Event Attendance Scanner</h4>
                             </div>
                             <div className="card-body p-4 text-center">
+
+                                {/* ✅ 1. EVENT SELECTION DROPDOWN */}
+                                <div className="mb-3 text-start">
+                                    <label className="form-label fw-bold text-muted">Select Active Event:</label>
+                                    <select 
+                                        className="form-select border-danger" 
+                                        value={selectedEventId}
+                                        onChange={(e) => {
+                                            setSelectedEventId(e.target.value);
+                                            setVerificationResult(""); 
+                                            setVerificationStatus("");
+                                        }}
+                                    >
+                                        <option value="">-- Choose Event --</option>
+                                        {events.map((ev) => (
+                                            <option key={ev.EventID} value={ev.EventID}>
+                                                {ev.EventName}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* ✅ 2. SCAN MODE RADIO BUTTONS (IN / OUT) */}
+                                <div className="mb-4 text-start p-3 rounded bg-light border">
+                                    <label className="form-label fw-bold text-muted d-block">Scan Mode:</label>
+                                    <div className="btn-group w-100" role="group">
+                                        <input 
+                                            type="radio" 
+                                            className="btn-check" 
+                                            name="scanMode" 
+                                            id="modeIn" 
+                                            autoComplete="off"
+                                            checked={scanMode === "IN"}
+                                            onChange={() => setScanMode("IN")}
+                                        />
+                                        <label className="btn btn-outline-success fw-bold" htmlFor="modeIn">
+                                            <i className="bi bi-box-arrow-in-right me-2"></i> TIME IN
+                                        </label>
+
+                                        <input 
+                                            type="radio" 
+                                            className="btn-check" 
+                                            name="scanMode" 
+                                            id="modeOut" 
+                                            autoComplete="off"
+                                            checked={scanMode === "OUT"}
+                                            onChange={() => setScanMode("OUT")}
+                                        />
+                                        <label className="btn btn-outline-danger fw-bold" htmlFor="modeOut">
+                                            <i className="bi bi-box-arrow-right me-2"></i> TIME OUT
+                                        </label>
+                                    </div>
+                                    <small className="text-muted mt-2 d-block text-center">
+                                        Current Mode: <span className={scanMode === "IN" ? "text-success fw-bold" : "text-danger fw-bold"}>
+                                            {scanMode === "IN" ? "LOGGING IN" : "LOGGING OUT"}
+                                        </span>
+                                    </small>
+                                </div>
+
+                                {/* SCANNER */}
                                 <div id="qr-scanner" style={{ width: '100%', maxWidth: '500px', margin: '0 auto' }}></div>
 
                                 <hr className="my-4" />
@@ -248,7 +319,7 @@ export default function Scanner() {
                                     </div>
                                 ) : (
                                     <div className={`alert ${getAlertClass()} fw-bold fs-5 mt-3`} role="alert">
-                                        {verificationResult || "Awaiting scan..."}
+                                        {verificationResult || "Select event and mode to start..."}
                                     </div>
                                 )}
                                 <button
