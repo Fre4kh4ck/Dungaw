@@ -40,6 +40,29 @@ server.use(cors({
 }));
 
 
+server.get('/user-activity', async (req, res) => {
+  try {
+    const result = await db.select({
+      // Select columns from USERS table
+      name: users.name,
+      email: users.email,
+      picture: users.picture,
+
+      // Select columns from ACTIVITY table
+      user_id: user_activity.user_id,
+      created_at: user_activity.created_at,
+      last_signin_at: user_activity.last_signin_at
+    })
+      .from(user_activity)
+      // LINK THE TABLES: Match user_activity.user_id to users.id
+      .leftJoin(users, eq(user_activity.user_id, users.id));
+
+    res.json(result);
+  } catch (err) {
+    console.error("Error fetching activity:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 server.post("/verify-ticket", async (req, res) => {
   try {

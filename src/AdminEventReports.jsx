@@ -447,6 +447,12 @@ export default function AdminEventReports() {
                                 <i className="bi bi-people-fill"></i> Accounts
                             </a>
                         </li>
+                        <li className="nav-item mb-3">
+                            <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/userAccounts"
+                            >
+                                <i className="bi bi-google"></i> User Accounts
+                            </a>
+                        </li>
                         <li className="nav-item mb-2">
                             <a className="nav-link text-light px-3 py-2 d-flex align-items-center gap-2" href="/manageEvents">
                                 <i className="bi bi-calendar2-event"></i> Manage Events

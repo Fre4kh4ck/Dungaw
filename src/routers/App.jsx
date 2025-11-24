@@ -14,6 +14,7 @@ import ManageEvents from '../AdminManageEvents'
 import AdminReoprts from '../AdminEventReports'
 import Scanner from '../Scanner';
 import EventApproval from '../EventApproval';
+import UserAccounts from '../UserAccounts';
 
 // ✅ IMPORT SECURITY FILES
 import RestrictGuest from '../RestrictGuest';
@@ -37,8 +38,6 @@ function App() {
           <Route path="/event-scanner" element={<Scanner />} />
         </Route>
 
-        {/* 3. 🛡️ SHARED ADMIN ROUTES (Admin AND Co-Admin) */}
-        {/* These pages are accessible by both roles */}
 
         <Route
           path="/adminEvents"
@@ -84,6 +83,15 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['admin']}> {/* ❌ No 'co-admin' here */}
               <Accounts />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/userAccounts"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}> {/* ❌ No 'co-admin' here */}
+              <UserAccounts/>
             </ProtectedRoute>
           }
         />

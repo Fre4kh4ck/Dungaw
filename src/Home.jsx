@@ -594,11 +594,11 @@ export default function Home() {
             {/* --- SHARED LINKS (Visible to Guests & Users) --- */}
             {/* I moved the social icons and logout button here so Guests can see them too */}
 
-            <li className="nav-item d-flex justify-content-center gap-3 mt-5">
+            <li className="nav-item d-flex justify-content-center gap-3">
               {/* Icons... */}
             </li>
 
-            <li className="nav-item d-flex justify-content-center gap-3" style={{ marginTop: '12rem' }}>
+            <li className="nav-item d-flex justify-content-center gap-3" style={{ marginTop: '8rem' }}>
               <a className="nav-link p-0" href="https://sims.antiquespride.edu.ph/aims/" target="_blank" rel="noopener noreferrer">
                 <img style={{ width: '2rem', marginTop: "clamp(14rem, 17vw, 30rem)" }} src={UALOGO} alt="UA Logo" />
               </a>

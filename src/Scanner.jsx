@@ -170,6 +170,13 @@ export default function Scanner() {
                                 <i className="bi bi-people-fill"></i> Accounts
                             </a>
                         </li>
+
+                        <li className="nav-item mb-3">
+                            <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/userAccounts"
+                            >
+                                <i className="bi bi-google"></i> User Accounts
+                            </a>
+                        </li>
                         <li className="nav-item mb-3">
                             <a
                                 className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded"
