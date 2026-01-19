@@ -4,7 +4,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { db } from './db.js';
-import { accounts, events, chat_messages, joined_events, users, user_activity } from './drizzle-schema.js';
+import { accounts, events, chat_messages, joined_events, users, user_activity, sib_campus_accounts } from './drizzle-schema.js';
 import { eq, and, gt, sql, count, desc, or } from 'drizzle-orm';
 import verifyToken from './middlewares/verifyToken.js';
 import multer from 'multer';
@@ -519,6 +519,7 @@ console.log("Serving static files from:", uploadsPath);
 server.use('/api/upload', express.static(uploadsPath));
 
 // POST /google-login
+// POST /google-login
 server.post("/google-login", async (req, res) => {
   try {
     console.log(">>> /google-login body:", req.body);
@@ -529,6 +530,7 @@ server.post("/google-login", async (req, res) => {
       return res.status(400).json({ success: false, message: "Missing idToken" });
     }
 
+    // 1. Verify Google Token
     const ticket = await googleClient.verifyIdToken({
       idToken,
       audience: process.env.GOOGLE_CLIENT_ID,
@@ -544,17 +546,41 @@ server.post("/google-login", async (req, res) => {
     const name = payload.name || "";
     const picture = payload.picture || null;
 
-    // ✅ Restrict domain
-    if (!email.endsWith("@antiquespride.edu.ph")) {
-      return res.status(403).json({ success: false, message: "Email not allowed" });
+    // ==================================================================
+    // ✅ NEW SECURITY CHECK: Check if email exists in sib_campus_accounts
+    // ==================================================================
+
+    // Assuming 'sib_campus_accounts' has a column named 'email'
+    // If your column name is different (e.g., 'account_email'), change it below.
+    const allowedUser = await db.select()
+      .from(sib_campus_accounts)
+      .where(eq(sib_campus_accounts.email, email));
+
+    // If the array is empty, the email is NOT in the allowed list
+    if (allowedUser.length === 0) {
+      console.log(`Login blocked: ${email} is not in sib_campus_accounts.`);
+      return res.status(403).json({
+        success: false,
+        message: "Access Denied: Your email is not registered in the campus records."
+      });
     }
 
-    // ✅ query DB
+    // ==================================================================
+    // END NEW CHECK
+    // ==================================================================
+
+    // 2. (Optional) Keep your domain restriction if you want double security
+    if (!email.endsWith("@antiquespride.edu.ph")) {
+      return res.status(403).json({ success: false, message: "Email domain not allowed" });
+    }
+
+    // 3. Query existing USERS table (for App Logic)
     const usersResult = await db.select().from(users).where(eq(users.email, email));
 
     let user = usersResult.length > 0 ? usersResult[0] : null;
     let isNewUser = false;
 
+    // 4. Create User in 'users' table if they are allowed but haven't logged in before
     if (!user) {
       const insertResult = await db.insert(users).values({
         google_id: googleId,
@@ -575,10 +601,10 @@ server.post("/google-login", async (req, res) => {
       console.log("Inserted new user:", user);
     }
 
-    // Track user activity
+    // 5. Track user activity
     await db.insert(user_activity).values({
       user_id: user.id,
-      created_at: isNewUser ? sql`NOW()` : undefined, // Only set on new user
+      created_at: isNewUser ? sql`NOW()` : undefined,
       last_signin_at: sql`NOW()`,
     }).onConflictDoUpdate({
       target: user_activity.user_id,
@@ -587,9 +613,10 @@ server.post("/google-login", async (req, res) => {
       },
     });
 
+    // 6. Generate Token
     const token = jwt.sign(
       {
-        id: Number(user.id), // ✅ VERY IMPORTANT FIX
+        id: Number(user.id),
         email: user.email,
         name: user.name,
       },
@@ -603,7 +630,6 @@ server.post("/google-login", async (req, res) => {
     return res.status(500).json({ success: false, message: "Server error", error: err.message });
   }
 });
-
 
 
 server.get('/manageEvents', verifyToken, (req, res) => {

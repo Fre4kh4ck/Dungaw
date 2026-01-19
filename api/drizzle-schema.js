@@ -60,3 +60,11 @@ export const user_activity = pgTable('user_activity', {
   created_at: timestamp('created_at').defaultNow(),
   last_signin_at: timestamp('last_signin_at').defaultNow(),
 });
+
+
+// Inside drizzle-schema.js
+export const sib_campus_accounts = pgTable('sib_campus_accounts', {
+  // If "email" is the only column in your database, 
+  // we treat it as the primary key in Drizzle.
+  email: varchar('email', { length: 255 }).primaryKey(),
+});
