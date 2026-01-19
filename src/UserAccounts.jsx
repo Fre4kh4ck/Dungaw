@@ -16,6 +16,11 @@ export default function UserAccounts() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
+  // ✅ ADDED STATES (ONLY ADDED, NOT REPLACED)
+  const [showValidAccounts, setShowValidAccounts] = useState(false);
+  const [validAccounts, setValidAccounts] = useState([]);
+  const [newEmail, setNewEmail] = useState("");
+
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
@@ -32,14 +37,53 @@ export default function UserAccounts() {
     }
   };
 
+  // ✅ ADDED: FETCH VALID ACCOUNTS
+  const fetchValidAccounts = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/sib-campus-accounts`);
+      setValidAccounts(response.data);
+    } catch (error) {
+      console.error("Error fetching valid accounts:", error);
+    }
+  };
+
   useEffect(() => {
     fetchActivityData();
+    fetchValidAccounts(); // Load both on start
   }, []);
 
-  // --- FILTER (UPDATED: Search by Name or Email) ---
+  // ✅ ADDED: ADD EMAIL ACTION
+  const handleAddEmail = async () => {
+    if (!newEmail) return alert("Please enter an email");
+    try {
+      await axios.post(`${API_URL}/sib-campus-accounts`, { email: newEmail });
+      setNewEmail("");
+      fetchValidAccounts();
+      alert("Email added to valid accounts!");
+    } catch (error) {
+      alert("Failed to add email. It might already exist.");
+    }
+  };
+
+  // ✅ ADDED: DELETE EMAIL ACTION
+  const handleDeleteEmail = async (email) => {
+    if (!window.confirm(`Delete ${email}?`)) return;
+    try {
+      await axios.delete(`${API_URL}/sib-campus-accounts/${email}`);
+      fetchValidAccounts();
+    } catch (error) {
+      alert("Error deleting account");
+    }
+  };
+
+  // --- FILTER (UPDATED: Handles both tables) ---
   const filteredData = activityData.filter(item => 
     (item.name && item.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (item.email && item.email.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  const filteredValid = validAccounts.filter(item => 
+    item.email && item.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // --- HELPER: Format for Display (UI) ---
@@ -63,14 +107,12 @@ export default function UserAccounts() {
     return new Date(dateString).toLocaleTimeString('en-US', { hour12: true }); 
   };
 
-  // --- EXPORT TO CSV FUNCTION (UPDATED: Includes Name/Email) ---
+  // --- EXPORT TO CSV FUNCTION (Kept exactly as you wrote it) ---
   const handleExportCSV = () => {
     if (filteredData.length === 0) {
         alert("No data to export");
         return;
     }
-
-    // 1. Setup Clean Headers
     const headers = [
         "Name", 
         "Email", 
@@ -80,8 +122,6 @@ export default function UserAccounts() {
         "Last Login Time", 
         "Account Status"
     ];
-
-    // 2. Map Data to Rows
     const rows = filteredData.map(row => {
         return [
             `"${row.name || 'Unknown'}"`, 
@@ -93,11 +133,7 @@ export default function UserAccounts() {
             "Active"
         ].join(",");
     });
-
-    // 3. Combine with BOM (Universal Encoding Fix for Excel)
     const csvContent = "\uFEFF" + [headers.join(","), ...rows].join("\n");
-
-    // 4. Download
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -112,7 +148,7 @@ export default function UserAccounts() {
     <>
       <div className='container-fluid bg-light' style={{ minHeight: '100vh' }}>
         
-        {/* --- NAVBAR --- */}
+        {/* --- NAVBAR (Untouched) --- */}
         <nav
           className="navbar navbar-dark fixed-top d-flex justify-content-between px-3"
           style={{ zIndex: 1050, height: '7rem', paddingTop: '1rem', paddingBottom: '1rem', backgroundColor: '#711212ff' }}
@@ -127,7 +163,7 @@ export default function UserAccounts() {
           <button className="btn btn-outline-light d-lg-none" onClick={toggleSidebar}>☰</button>
         </nav>
 
-        {/* --- SIDEBAR --- */}
+        {/* --- SIDEBAR (Untouched) --- */}
         <div
           className={`border-end text-light position-fixed top-0 start-0 h-100 sidebar d-flex flex-column ${sidebarOpen ? "show" : ""}`}
           style={{ width: '250px', zIndex: 1040, boxShadow: '2px 0 10px rgba(0,0,0,0.1)', backgroundColor: '#711212ff' }}
@@ -196,27 +232,55 @@ export default function UserAccounts() {
         >
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h2 className="fw-bold text-dark mb-1">User Activity Log</h2>
-                    <p className="text-muted mb-0">Monitor student and staff login sessions.</p>
+                    <h2 className="fw-bold text-dark mb-1">{showValidAccounts ? "Registered Valid Accounts" : "User Activity Log"}</h2>
+                    <p className="text-muted mb-0">{showValidAccounts ? "Manage allowed campus emails." : "Monitor student and staff login sessions."}</p>
                 </div>
                 
-                {/* PROFESSIONAL EXPORT BUTTON */}
-                <button 
-                    className="btn btn-success btn-sm d-flex align-items-center shadow-sm"
-                    onClick={handleExportCSV}
-                    style={{ padding: '8px 16px', fontSize: '0.9rem', borderRadius: '6px' }}
-                >
-                    <i className="bi bi-file-earmark-spreadsheet me-2"></i> 
-                    Export to CSV
-                </button>
+                <div className="d-flex gap-2">
+                    {/* ✅ NEW BUTTON: SWITCH VIEWS */}
+                    <button 
+                        className={`btn btn-sm d-flex align-items-center ${showValidAccounts ? 'btn-dark' : 'btn-outline-dark'}`}
+                        onClick={() => setShowValidAccounts(!showValidAccounts)}
+                        style={{ padding: '8px 16px', borderRadius: '6px' }}
+                    >
+                        <i className={`bi ${showValidAccounts ? 'bi-arrow-left' : 'bi-shield-check'} me-2`}></i>
+                        {showValidAccounts ? "View Activity Logs" : "Registered Valid Accounts"}
+                    </button>
+
+                    <button 
+                        className="btn btn-success btn-sm d-flex align-items-center shadow-sm"
+                        onClick={handleExportCSV}
+                        style={{ padding: '8px 16px', fontSize: '0.9rem', borderRadius: '6px' }}
+                    >
+                        <i className="bi bi-file-earmark-spreadsheet me-2"></i> 
+                        Export to CSV
+                    </button>
+                </div>
             </div>
+
+            {/* ✅ NEW UI: ADD EMAIL INPUT (Only visible in Management mode) */}
+            {showValidAccounts && (
+              <div className="card border-0 shadow-sm mb-4 p-3" style={{ borderRadius: '12px' }}>
+                <div className="d-flex gap-2">
+                  <input 
+                    type="email" 
+                    className="form-control" 
+                    placeholder="Enter email to authorize (e.g. student@antiquespride.edu.ph)" 
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                  />
+                  <button className="btn btn-primary px-4" onClick={handleAddEmail}>Add Email</button>
+                </div>
+              </div>
+            )}
 
             <div className="card border-0 shadow-sm" style={{ borderRadius: '12px', overflow: 'hidden' }}>
                 <div style={{ height: '4px', backgroundColor: '#711212ff', width: '100%' }}></div>
 
                 <div className="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center border-bottom-0">
                     <h5 className="mb-0 fw-bold text-secondary">
-                        <i className="bi bi-list-ul me-2"></i> Recent Activities
+                        <i className={`bi ${showValidAccounts ? 'bi-shield-lock' : 'bi-list-ul'} me-2`}></i> 
+                        {showValidAccounts ? "Authorized Emails" : "Recent Activities"}
                     </h5>
                     
                     <div className="input-group" style={{ maxWidth: '300px' }}>
@@ -226,7 +290,7 @@ export default function UserAccounts() {
                         <input 
                             type="text" 
                             className="form-control bg-light border-start-0" 
-                            placeholder="Search Name or Email..." 
+                            placeholder="Search..." 
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             style={{ boxShadow: 'none' }}
@@ -238,54 +302,68 @@ export default function UserAccounts() {
                     <div className="table-responsive">
                         <table className="table table-hover align-middle mb-0">
                             <thead className="bg-light">
-                                <tr>
+                                {showValidAccounts ? (
+                                  /* ✅ REGISTERED ACCOUNTS HEADERS */
+                                  <tr>
+                                    <th className="ps-4 py-3 text-uppercase text-secondary small">Authorized Email</th>
+                                    <th className="py-3 text-uppercase text-secondary small">Access Level</th>
+                                    <th className="pe-4 py-3 text-end text-uppercase text-secondary small">Actions</th>
+                                  </tr>
+                                ) : (
+                                  /* ORIGINAL HEADERS */
+                                  <tr>
                                     <th className="ps-4 py-3 text-uppercase text-secondary small">User Identity</th>
                                     <th className="py-3 text-uppercase text-secondary small">Account Created</th>
                                     <th className="py-3 text-uppercase text-secondary small">Last Login</th>
                                     <th className="pe-4 py-3 text-end text-uppercase text-secondary small">Status</th>
-                                </tr>
+                                  </tr>
+                                )}
                             </thead>
                             <tbody>
                                 {loading ? (
-                                    <tr><td colSpan="4" className="text-center py-5 text-muted">Loading activity logs...</td></tr>
+                                    <tr><td colSpan="4" className="text-center py-5 text-muted">Loading records...</td></tr>
+                                ) : showValidAccounts ? (
+                                    /* ✅ REGISTERED ACCOUNTS DATA */
+                                    filteredValid.map((row, index) => (
+                                      <tr key={index}>
+                                        <td className="ps-4 py-3 fw-bold">{row.email}</td>
+                                        <td><span className="badge bg-primary-subtle text-primary rounded-pill px-3">Campus User</span></td>
+                                        <td className="pe-4 text-end">
+                                          <button className="btn btn-link text-danger p-0" onClick={() => handleDeleteEmail(row.email)}>
+                                            <i className="bi bi-trash"></i>
+                                          </button>
+                                        </td>
+                                      </tr>
+                                    ))
                                 ) : filteredData.length > 0 ? (
+                                    /* ORIGINAL ACTIVITY LOG DATA */
                                     filteredData.map((row, index) => {
                                         const created = formatDateTime(row.created_at);
                                         const lastSign = formatDateTime(row.last_signin_at);
-                                        
                                         return (
                                             <tr key={index}>
                                                 <td className="ps-4 py-3">
                                                     <div className="d-flex align-items-center">
-                                                        {/* AVATAR LOGIC: Shows Picture if exists, else shows Initials */}
                                                         {row.picture ? (
-                                                            <img 
-                                                                src={row.picture} 
-                                                                alt="user" 
-                                                                className="rounded-circle me-3" 
-                                                                style={{ width: '40px', height: '40px', objectFit: 'cover' }} 
-                                                            />
+                                                            <img src={row.picture} alt="user" className="rounded-circle me-3" style={{ width: '40px', height: '40px', objectFit: 'cover' }} />
                                                         ) : (
                                                             <div className="rounded-circle bg-light d-flex justify-content-center align-items-center text-secondary me-3" style={{ width: '40px', height: '40px', fontWeight: 'bold' }}>
                                                                 {row.name ? row.name.charAt(0).toUpperCase() : "?"}
                                                             </div>
                                                         )}
-                                                        
                                                         <div>
                                                             <span className="fw-bold text-dark">{row.name || "Unknown User"}</span>
-                                                            <div className="small text-muted" style={{ fontSize: '0.8rem' }}>
-                                                                {row.email || "No email"}
-                                                            </div>
+                                                            <div className="small text-muted" style={{ fontSize: '0.8rem' }}>{row.email || "No email"}</div>
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="py-3">
+                                                <td>
                                                     <div className="d-flex flex-column">
                                                         <span className="fw-medium text-dark">{created.date}</span>
                                                         <span className="small text-muted">{created.time}</span>
                                                     </div>
                                                 </td>
-                                                <td className="py-3">
+                                                <td>
                                                     <div className="d-flex flex-column">
                                                         <span className="fw-medium text-dark">{lastSign.date}</span>
                                                         <span className="small text-muted">{lastSign.time}</span>
@@ -305,11 +383,11 @@ export default function UserAccounts() {
                     </div>
                 </div>
                 <div className="card-footer bg-white text-muted small py-3 border-top-0">
-                    Showing {filteredData.length} entries
+                    Showing {showValidAccounts ? filteredValid.length : filteredData.length} entries
                 </div>
             </div>
         </div>
       </div>
     </>
   );
-} 
+}

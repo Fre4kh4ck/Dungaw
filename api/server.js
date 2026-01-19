@@ -39,6 +39,48 @@ server.use(cors({
   credentials: true
 }));
 
+server.get('/sib-campus-accounts', async (req, res) => {
+  try {
+    const result = await db.select().from(sib_campus_accounts);
+    res.json(result);
+  } catch (err) {
+    console.error("Error fetching campus accounts:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- ADD NEW VALID CAMPUS ACCOUNT ---
+server.post('/sib-campus-accounts', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: "Email is required" });
+
+    await db.insert(sib_campus_accounts).values({
+      email: email
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Error adding campus account:", err);
+    // Handle duplicate email error
+    if (err.code === '23505') {
+      return res.status(409).json({ error: "Email already exists" });
+    }
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- DELETE VALID CAMPUS ACCOUNT ---
+server.delete('/sib-campus-accounts/:email', async (req, res) => {
+  try {
+    const { email } = req.params;
+    await db.delete(sib_campus_accounts).where(eq(sib_campus_accounts.email, email));
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Error deleting campus account:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 server.get('/user-activity', async (req, res) => {
   try {
