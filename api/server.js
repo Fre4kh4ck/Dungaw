@@ -39,12 +39,37 @@ server.use(cors({
   credentials: true
 }));
 
+// --- 1. GET ALL VALID ACCOUNTS (Already works, but good to verify) ---
 server.get('/sib-campus-accounts', async (req, res) => {
   try {
     const result = await db.select().from(sib_campus_accounts);
-    res.json(result);
+    res.json(result); // This will now include the department column automatically
   } catch (err) {
     console.error("Error fetching campus accounts:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- 2. ADD NEW VALID CAMPUS ACCOUNT (MODIFIED) ---
+server.post('/sib-campus-accounts', async (req, res) => {
+  try {
+    // ✅ Extract department from the request body
+    const { email, department } = req.body;
+
+    if (!email) return res.status(400).json({ error: "Email is required" });
+    if (!department) return res.status(400).json({ error: "Department is required" });
+
+    await db.insert(sib_campus_accounts).values({
+      email: email,
+      department: department // ✅ Insert the department into DB
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Error adding campus account:", err);
+    if (err.code === '23505' || err.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({ error: "Email already exists" });
+    }
     res.status(500).json({ error: err.message });
   }
 });
@@ -85,19 +110,23 @@ server.delete('/sib-campus-accounts/:email', async (req, res) => {
 server.get('/user-activity', async (req, res) => {
   try {
     const result = await db.select({
-      // Select columns from USERS table
+      // Data from USERS table
       name: users.name,
       email: users.email,
       picture: users.picture,
 
-      // Select columns from ACTIVITY table
+      // Data from ACTIVITY table
       user_id: user_activity.user_id,
       created_at: user_activity.created_at,
-      last_signin_at: user_activity.last_signin_at
+      last_signin_at: user_activity.last_signin_at,
+
+      // NEW: Data from SIB_CAMPUS_ACCOUNTS table
+      department: sib_campus_accounts.department
     })
       .from(user_activity)
-      // LINK THE TABLES: Match user_activity.user_id to users.id
-      .leftJoin(users, eq(user_activity.user_id, users.id));
+      .leftJoin(users, eq(user_activity.user_id, users.id))
+      // ✅ JOIN with sib_campus_accounts using email as the link
+      .leftJoin(sib_campus_accounts, eq(users.email, sib_campus_accounts.email));
 
     res.json(result);
   } catch (err) {

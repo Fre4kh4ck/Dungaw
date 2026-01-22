@@ -63,8 +63,9 @@ export const user_activity = pgTable('user_activity', {
 
 
 // Inside drizzle-schema.js
+// Look for your sib_campus_accounts definition
 export const sib_campus_accounts = pgTable('sib_campus_accounts', {
-  // If "email" is the only column in your database, 
-  // we treat it as the primary key in Drizzle.
-  email: varchar('email', { length: 255 }).primaryKey(),
+  email: varchar('email', { length: 100 }).primaryKey(),
+  // ✅ ADD THIS LINE - It must match your database column name exactly
+  department: varchar('department', { length: 255 }), 
 });
