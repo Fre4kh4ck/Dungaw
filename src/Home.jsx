@@ -358,6 +358,7 @@ export default function Home() {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
 
+
   // MAP KEYS TO YOUR LOCAL MP4 FILES
   const VIDEO_SOURCES = {
     CCS: CCISMP4,
@@ -413,21 +414,36 @@ export default function Home() {
       try {
         const res = await axios.get(`${import.meta.env.VITE_API_URL}/events`);
         const allEvents = Array.isArray(res.data[0]) ? res.data[0] : res.data;
-        const approvedEvents = allEvents.filter(event => event.EventStatus === "approved");
 
-        const formatted = approvedEvents.map((event) => {
+        // Filter for approved events first
+        let approved = allEvents.filter(event => event.EventStatus === "approved");
+
+        // Filter by Department Logic
+        if (user && user.role !== 'admin' && user.role !== 'guest') {
+          // Find the user's department name regardless of the key used (dept or department)
+          const userDept = (user.dept || user.department || "").toUpperCase();
+
+          approved = approved.filter(event => {
+            const eventDept = (event.EventDept || "").toUpperCase();
+            // Show if it's a general UA event OR if it matches user department
+            return eventDept === 'UA' || eventDept === userDept;
+          });
+
+          console.log("Filtering for dept:", userDept); // Debugging line
+        }
+
+        const formatted = approved.map((event) => {
           const parseDate = (dateString) => {
             if (!dateString) return null;
-            const date = new Date(dateString);
-            return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            const d = new Date(dateString);
+            return new Date(d.getFullYear(), d.getMonth(), d.getDate());
           };
           return {
             ...event,
-            ...event,
             startDate: parseDate(event.EventStartDate),
             endDate: parseDate(event.EventEndDate),
-          }
-        }).filter(event => event.startDate);
+          };
+        }).filter(ev => ev.startDate);
 
         sendData(formatted);
         setSelectedEvents(getEventsForDate(new Date(), formatted));
@@ -435,9 +451,9 @@ export default function Home() {
         console.error("Failed to fetch events", err);
       }
     };
-    fetchEvents();
-  }, []);
 
+    fetchEvents();
+  }, [user]); // Important: keeps calendar in sync with user login state
   useEffect(() => {
     if (user && user.role !== 'guest') {
       const checkNotifications = async () => {

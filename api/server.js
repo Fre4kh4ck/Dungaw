@@ -39,6 +39,30 @@ server.use(cors({
   credentials: true
 }));
 
+// ✅ NEW ROUTE: Get User Department by Email
+// This allows the frontend to fetch the department (CCIS, CBA, etc.)
+server.get('/user-profile/:email', async (req, res) => {
+  try {
+    const { email } = req.params;
+
+    const result = await db.select({
+      email: sib_campus_accounts.email,
+      department: sib_campus_accounts.department // We specifically need this
+    })
+      .from(sib_campus_accounts)
+      .where(eq(sib_campus_accounts.email, email));
+
+    if (result.length > 0) {
+      res.json(result[0]); // Returns { email: "...", department: "CCIS" }
+    } else {
+      res.status(404).json({ error: "User not found in campus records" });
+    }
+  } catch (err) {
+    console.error("Error fetching user profile:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // --- 1. GET ALL VALID ACCOUNTS (Already works, but good to verify) ---
 server.get('/sib-campus-accounts', async (req, res) => {
   try {
@@ -618,11 +642,8 @@ server.post("/google-login", async (req, res) => {
     const picture = payload.picture || null;
 
     // ==================================================================
-    // ✅ NEW SECURITY CHECK: Check if email exists in sib_campus_accounts
+    // ✅ MODIFIED: Check sib_campus_accounts AND get the Department
     // ==================================================================
-
-    // Assuming 'sib_campus_accounts' has a column named 'email'
-    // If your column name is different (e.g., 'account_email'), change it below.
     const allowedUser = await db.select()
       .from(sib_campus_accounts)
       .where(eq(sib_campus_accounts.email, email));
@@ -636,22 +657,22 @@ server.post("/google-login", async (req, res) => {
       });
     }
 
-    // ==================================================================
-    // END NEW CHECK
+    // ✅ CAPTURE THE DEPARTMENT
+    const userDepartment = allowedUser[0].department;
     // ==================================================================
 
-    // 2. (Optional) Keep your domain restriction if you want double security
+    // 2. (Optional) Keep your domain restriction
     if (!email.endsWith("@antiquespride.edu.ph")) {
       return res.status(403).json({ success: false, message: "Email domain not allowed" });
     }
 
-    // 3. Query existing USERS table (for App Logic)
+    // 3. Query existing USERS table
     const usersResult = await db.select().from(users).where(eq(users.email, email));
 
     let user = usersResult.length > 0 ? usersResult[0] : null;
     let isNewUser = false;
 
-    // 4. Create User in 'users' table if they are allowed but haven't logged in before
+    // 4. Create User if not exists
     if (!user) {
       const insertResult = await db.insert(users).values({
         google_id: googleId,
@@ -668,20 +689,17 @@ server.post("/google-login", async (req, res) => {
         picture,
       };
       isNewUser = true;
-
       console.log("Inserted new user:", user);
     }
 
-    // 5. Track user activity
+    // 5. Track activity
     await db.insert(user_activity).values({
       user_id: user.id,
       created_at: isNewUser ? sql`NOW()` : undefined,
       last_signin_at: sql`NOW()`,
     }).onConflictDoUpdate({
       target: user_activity.user_id,
-      set: {
-        last_signin_at: sql`NOW()`,
-      },
+      set: { last_signin_at: sql`NOW()` },
     });
 
     // 6. Generate Token
@@ -690,12 +708,21 @@ server.post("/google-login", async (req, res) => {
         id: Number(user.id),
         email: user.email,
         name: user.name,
+        department: userDepartment // ✅ Added department to token
       },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    return res.json({ success: true, token, user });
+    return res.json({
+      success: true,
+      token,
+      user: {
+        ...user,
+        department: userDepartment // ✅ SEND DEPARTMENT TO FRONTEND
+      }
+    });
+
   } catch (err) {
     console.error("Google auth error:", err);
     return res.status(500).json({ success: false, message: "Server error", error: err.message });
