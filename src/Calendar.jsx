@@ -89,8 +89,8 @@ const CalendarStyles = () => (
     }
 
     /* ============================================
-       ✅ FIX: WEEKDAY HEADERS (Mon, Tue, etc.)
-       ============================================ */
+        ✅ FIX: WEEKDAY HEADERS (Mon, Tue, etc.)
+        ============================================ */
     .react-calendar__month-view__weekdays {
       text-align: center;
       text-transform: uppercase;
@@ -176,8 +176,8 @@ const CalendarStyles = () => (
     }
 
     /* ============================================
-       ✅ FIX: RESPONSIVE MONTH NAVIGATION 
-       ============================================ */
+        ✅ FIX: RESPONSIVE MONTH NAVIGATION 
+        ============================================ */
     @media (max-width: 576px) {
       .react-calendar__navigation__prev2-button,
       .react-calendar__navigation__next2-button {
@@ -209,13 +209,21 @@ export default function Calendars() {
   const [selectedDept, setSelectedDept] = useState("All Departments");
   const [events, setEvents] = useState([]);
   const [selectedDayEvents, setSelectedDayEvents] = useState([]);
+  const [user, setUser] = useState(null); // Added for filtering
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
-  // Handle screen resize
+  // Handle screen resize and User loading
   useEffect(() => {
     const handleResize = () => setIsLargeScreen(window.innerWidth >= 992);
     window.addEventListener("resize", handleResize);
+
+    // ✅ Added: Load user from localStorage to know their department
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+        setUser(JSON.parse(storedUser));
+    }
+
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
@@ -231,24 +239,35 @@ export default function Calendars() {
     CMS: "#9E9E9E"
   };
 
-  // ✅ 1. FETCH EVENTS
+  // ✅ 1. FETCH EVENTS (Preserved structure, added dept logic)
   useEffect(() => {
     const fetchEvents = async () => {
       try {
         const res = await fetch(`${import.meta.env.VITE_API_URL}/events`);
         const data = await res.json();
 
-        const approvedEvents = data.filter(
+        // Standardize data source
+        const allFetchedEvents = Array.isArray(data[0]) ? data[0] : data;
+
+        // ✅ Step 1: Filter by Approved status
+        let filtered = allFetchedEvents.filter(
           (event) => event.EventStatus === "approved"
         );
 
-        // ✅ Parse EventStartDate and EventEndDate
-        const formatted = approvedEvents.map((event) => {
-          // Helper to parse dates correctly (ignoring time)
+        // ✅ Step 2: Apply User Department Logic (Show only their dept + UA)
+        if (user && user.role !== 'admin') {
+            const userDept = (user.dept || user.department || "").toUpperCase();
+            filtered = filtered.filter(event => {
+                const eventDept = (event.EventDept || "").toUpperCase();
+                return eventDept === 'UA' || eventDept === userDept;
+            });
+        }
+
+        // ✅ Step 3: Parse EventStartDate and EventEndDate
+        const formatted = filtered.map((event) => {
           const parseDate = (dateString) => {
             if (!dateString) return null;
             const date = new Date(dateString);
-            // Re-create date to strip time and avoid timezone issues
             return new Date(date.getFullYear(), date.getMonth(), date.getDate());
           };
 
@@ -257,17 +276,18 @@ export default function Calendars() {
             startDate: parseDate(event.EventStartDate),
             endDate: parseDate(event.EventEndDate),
           }
-        }).filter(event => event.startDate); // Filter out any events that had an invalid start date
+        }).filter(event => event.startDate); 
 
         setEvents(formatted);
-        // Trigger initial date change to load today's events
-        handleDateChange(new Date(), formatted, "All Departments");
+        handleDateChange(new Date(), formatted, selectedDept);
       } catch (err) {
         console.error("Error fetching events:", err);
       }
     };
+    
+    // Only fetch once user state is checked
     fetchEvents();
-  }, []);
+  }, [user]); // Re-run when user is loaded
 
 
   // ✅ 2. NEW HELPER FUNCTIONS
@@ -285,28 +305,22 @@ export default function Calendars() {
 
     const options = { month: 'short', day: 'numeric' };
 
-    // 1. Check if end date exists or is same as start date
     if (!endDate || isNaN(endDate.getTime()) || startDate.toDateString() === endDate.toDateString()) {
-      return startDate.toLocaleDateString('en-US', options); // e.g., "Nov 24"
+      return startDate.toLocaleDateString('en-US', options); 
     }
 
-    // 3. They are different days, check for same month
     if (startDate.getMonth() === endDate.getMonth()) {
       const startDay = startDate.getDate();
       const endDay = endDate.getDate();
       const month = startDate.toLocaleString('default', { month: 'short' });
-      return `${month} ${startDay}-${endDay}`; // e.g., "Nov 24-28"
+      return `${month} ${startDay}-${endDay}`; 
     } else {
-      // 4. Different months
-      // e.g., "Nov 28 - Dec 2"
       return `${startDate.toLocaleDateString('en-US', options)} - ${endDate.toLocaleDateString('en-US', options)}`;
     }
   };
 
   // ✅ 3. FILTER EVENTS
-  // Filters events for the *single selected day*
   const filterEvents = (selectedDate, currentDept, allEvents) => {
-    // Normalize selectedDate to ignore time
     const cleanSelectedDate = new Date(
       selectedDate.getFullYear(),
       selectedDate.getMonth(),
@@ -315,14 +329,8 @@ export default function Calendars() {
 
     const dayEvents = allEvents.filter((event) => {
       const startDate = event.startDate;
-      const endDate = event.endDate;
+      const endDate = event.endDate || event.startDate; // If no end date, use start date
 
-      // Case 1: Single-day event
-      if (!endDate || startDate.getTime() === endDate.getTime()) {
-        return startDate.getTime() === cleanSelectedDate.getTime();
-      }
-
-      // Case 2: Multi-day event
       return cleanSelectedDate >= startDate && cleanSelectedDate <= endDate;
     });
 
@@ -333,53 +341,39 @@ export default function Calendars() {
     }
   };
 
-  // Handle selecting a new date
   const handleDateChange = (value, eventSource = events, deptSource = selectedDept) => {
     setDate(value);
     filterEvents(value, deptSource, eventSource);
   };
 
-  // Handle changing the department filter
   const handleDeptChange = (e) => {
     const newDept = e.target.value;
     setSelectedDept(newDept);
-    filterEvents(date, newDept, events); // Re-filter based on the new department
+    filterEvents(date, newDept, events);
   };
 
   // ✅ 4. UPCOMING EVENTS
-  // Get events for the *entire* month (for agenda)
   const upcomingEvents = events
     .filter(event => {
       const today = new Date();
-      today.setHours(0, 0, 0, 0); // Normalize today's date
-      // Show event if its start date is today or later
+      today.setHours(0, 0, 0, 0); 
       return event.startDate >= today;
     })
-    .sort((a, b) => a.startDate - b.startDate); // Sort by soonest
+    .sort((a, b) => a.startDate - b.startDate); 
 
 
   // ✅ 5. RENDER EVENT DOTS
-  // Helper function to render event dots on the calendar
   const renderEventDots = ({ date, view }) => {
     if (view !== 'month') return null;
 
-    // Normalize the calendar tile's date
     const tileDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
     const dayEvents = events.filter((event) => {
       const startDate = event.startDate;
-      const endDate = event.endDate;
-
-      // Case 1: Single-day event
-      if (!endDate || startDate.getTime() === endDate.getTime()) {
-        return startDate.getTime() === tileDate.getTime();
-      }
-
-      // Case 2: Multi-day event (check if tileDate is in range)
+      const endDate = event.endDate || event.startDate;
       return tileDate >= startDate && tileDate <= endDate;
     });
 
-    // Filter by department
     const filteredEvents =
       selectedDept === "All Departments"
         ? dayEvents
@@ -387,7 +381,6 @@ export default function Calendars() {
 
     if (filteredEvents.length === 0) return null;
 
-    // Show up to 3 dots, using the department color
     return (
       <div className="event-dots-container">
         {filteredEvents.slice(0, 3).map((event, i) => (
@@ -403,9 +396,8 @@ export default function Calendars() {
 
   return (
     <>
-      <CalendarStyles /> {/* Inject the new CSS styles */}
+      <CalendarStyles /> 
 
-      {/* ===== NAVBAR (Unchanged) ===== */}
       <div className="container-fluid p-0">
         <nav
           className="navbar navbar-dark fixed-top d-flex justify-content-between px-3"
@@ -432,7 +424,6 @@ export default function Calendars() {
           </button>
         </nav>
 
-        {/* ===== SIDEBAR (Unchanged) ===== */}
         <div
           className={`border-end text-light position-fixed top-0 start-0 h-100 sidebar d-flex flex-column ${sidebarOpen ? "show" : ""
             }`}
@@ -456,37 +447,22 @@ export default function Calendars() {
           </div>
           <ul className="nav flex-column mt-5 px-3">
             <li className="nav-item mb-2">
-              <a
-                className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg"
-                href="/home"
-              >
+              <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/home">
                 <i className="bi bi-house-door-fill"></i> Home
               </a>
             </li>
             <li className="nav-item mb-2">
-              <a
-                className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded"
-                href="/calendar"
-                style={{
-                  backgroundColor: "rgba(255, 255, 255, 0.3)",
-                }}
-              >
+              <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded" href="/calendar" style={{ backgroundColor: "rgba(255, 255, 255, 0.3)" }}>
                 <i className="bi bi-calendar-event-fill"></i> Calendar
               </a>
             </li>
             <li className="nav-item mb-2">
-              <a
-                className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg"
-                href="/events"
-              >
+              <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/events">
                 <i className="bi bi-calendar2-event"></i> Events
               </a>
             </li>
             <li className="nav-item mb-2">
-              <a
-                className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg"
-                href="/chats"
-              >
+              <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/chats">
                 <i className="bi bi-chat-dots-fill"></i> Chat
               </a>
             </li>
@@ -502,10 +478,7 @@ export default function Calendars() {
               </a>
             </li>
             <li className="nav-item mb-2 justify-content-center d-flex">
-              <a
-                className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg text-center"
-                href="/login"
-              >
+              <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg text-center" href="/login">
                 <i className="bi bi-box-arrow-right"></i> Log out
               </a>
             </li>
@@ -527,72 +500,14 @@ export default function Calendars() {
         </div>
       </div>
 
-      {/* ===== ✅ NEW MAIN CONTENT LAYOUT ===== */}
-      <div
-        className={`page-container ${isLargeScreen ? "page-container-large" : ""
-          }`}
-      >
-        {/* Page Header with Title and Filter */}
+      <div className={`page-container ${isLargeScreen ? "page-container-large" : ""}`}>
         <div className="page-header">
           <h1 className="fw-bold">
-            <i className="bi bi-calendar-event-fill me-3"></i>Academic Calendar
+            <i className="bi bi-calendar-event-fill me-3 mt-5"></i>Academic Calendar
           </h1>
-          <div className="d-flex align-items-center gap-2">
-            <label className="fw-semibold text-secondary mb-0">
-              Filter:
-            </label>
-            <select
-              className="form-select shadow-sm border-1"
-              value={selectedDept}
-              onChange={handleDeptChange}
-              style={{ width: "220px" }}
-            >
-              <option>All Departments</option>
-              {Object.keys(deptColors).map((dept) => (
-                <option key={dept}>{dept}</option>
-              ))}
-            </select>
-          </div>
         </div>
 
-        {/* --- ✅ NEW LEGEND POSITION --- */}
-        <div className="card shadow-sm border-0 mb-4">
-          <div className="card-body p-3">
-            <div className="d-flex flex-wrap justify-content-center align-items-center gap-2">
-              <h6 className="fw-bold text-secondary mb-0 me-3">
-                <i className="bi bi-palette-fill me-2"></i>Legend:
-              </h6>
-              {Object.entries(deptColors).map(([dept, color]) => (
-                <span
-                  key={dept}
-                  className="badge d-flex align-items-center gap-2"
-                  style={{
-                    backgroundColor: "#f8f9fa",
-                    border: `1px solid ${color}`,
-                    color: "#333",
-                    padding: "0.4em 0.75em"
-                  }}
-                >
-                  <span
-                    style={{
-                      width: "10px",
-                      height: "10px",
-                      backgroundColor: color,
-                      borderRadius: "50%",
-                    }}
-                  ></span>
-                  <small className="fw-bold">{dept}</small>
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-        {/* --- END NEW LEGEND POSITION --- */}
-
-        {/* Main Content Grid */}
         <div className="row">
-
-          {/* Left Column: Calendar + Selected Events */}
           <div className="col-lg-8 col-md-12 mb-4">
             <div className="card border-0 shadow-sm rounded-4 h-100">
               <div className="card-body p-4">
@@ -605,15 +520,11 @@ export default function Calendars() {
                   />
                 </div>
 
-                {/* --- Selected Date's Events --- */}
                 <hr className="my-4" />
                 <div>
                   <h5 className="fw-bold mb-3 text-center">
                     Events for {" "}
-                    <span className="text-danger">
-                      {/* ✅ MODIFIED: Use new formatDate */}
-                      {formatDate(date)}
-                    </span>
+                    <span className="text-danger">{formatDate(date)}</span>
                   </h5>
                   {selectedDayEvents.length > 0 ? (
                     <ul className="list-group list-group-flush">
@@ -640,11 +551,9 @@ export default function Calendars() {
                   )}
                 </div>
               </div>
-              {/* --- Color Legend was removed from here --- */}
             </div>
           </div>
 
-          {/* Right Column: Upcoming Events Agenda */}
           <div className="col-lg-4 col-md-12 mb-4">
             <div className="card border-0 shadow-sm rounded-4 h-100">
               <div className="card-body p-4 d-flex flex-column">
@@ -660,13 +569,11 @@ export default function Calendars() {
                           className="agenda-date"
                           style={{ backgroundColor: deptColors[event.EventDept] || '#bbb' }}
                         >
-                          {/* ✅ MODIFIED: Use startDate */}
                           <span>{event.startDate.getDate()}</span>
                           <small>{event.startDate.toLocaleString('default', { month: 'short' }).toUpperCase()}</small>
                         </div>
                         <div className="agenda-details">
                           <h6 className="text-truncate">{event.EventName}</h6>
-                          {/* ✅ MODIFIED: Use new date range function */}
                           <p className="text-muted small mb-0 fw-bold" style={{ color: "#333 !important" }}>
                             {formatEventDateRange(event.startDate, event.endDate)}
                           </p>
@@ -683,10 +590,7 @@ export default function Calendars() {
                 </div>
 
                 <div className="text-center mt-4">
-                  <a
-                    href="/events"
-                    className="btn btn-outline-danger rounded-pill px-4"
-                  >
+                  <a href="/events" className="btn btn-outline-danger rounded-pill px-4">
                     View All Events
                   </a>
                 </div>
