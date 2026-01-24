@@ -39,6 +39,37 @@ server.use(cors({
   credentials: true
 }));
 
+// ✅ TOGGLE ARCHIVE STATUS
+server.put("/chats/archive", async (req, res) => {
+  const { email, eventId, isArchived } = req.body;
+  try {
+    await db.update(joined_events)
+      .set({ is_archived: isArchived })
+      .where(and(
+        eq(joined_events.user_email, email),
+        eq(joined_events.event_id, eventId)
+      ));
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to archive chat" });
+  }
+});
+
+// ✅ DELETE/REMOVE FROM LIST
+// This physically removes the user from the event chat list
+server.delete("/chats/remove", async (req, res) => {
+  const { email, eventId } = req.body;
+  try {
+    await db.delete(joined_events)
+      .where(and(
+        eq(joined_events.user_email, email),
+        eq(joined_events.event_id, eventId)
+      ));
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to delete chat" });
+  }
+});
 // ✅ NEW ROUTE: Get User Department by Email
 // This allows the frontend to fetch the department (CCIS, CBA, etc.)
 server.get('/user-profile/:email', async (req, res) => {
@@ -431,19 +462,22 @@ server.get('/auth/verify', verifyToken, (req, res) => {
 
 server.get("/my-chats/:email", async (req, res) => {
   const email = req.params.email;
-
   try {
     const result = await db.select({
       event_id: events.event_id,
       event_name: events.event_name,
       event_photo: events.event_photo,
       event_dept: events.event_dept,
-      event_venue: events.event_venue
-    }).from(joined_events).innerJoin(events, eq(joined_events.event_id, events.event_id)).where(eq(joined_events.user_email, email)).orderBy(desc(joined_events.joined_at));
+      event_venue: events.event_venue,
+      is_archived: joined_events.is_archived // ✅ Get this from DB
+    })
+      .from(joined_events)
+      .innerJoin(events, eq(joined_events.event_id, events.event_id))
+      .where(eq(joined_events.user_email, email))
+      .orderBy(desc(joined_events.joined_at));
 
     res.json(result);
   } catch (err) {
-    console.error("Error fetching joined chats:", err);
     res.status(500).json({ error: "Database error" });
   }
 });

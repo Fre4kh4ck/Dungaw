@@ -298,9 +298,9 @@ export default function AdminHome() {
                                             <input type="text" className="form-control bg-light border-0" name="venue" placeholder="Campus Venue" required />
                                         </div>
                                         <div className="col-12 col-md-3">
-                                            <label className="form-label fw-bold small text-uppercase text-muted">Department</label>
+                                            <label className="form-label fw-bold small text-uppercase text-muted">Colleges</label>
                                             <select className="form-select bg-light border-0" name="dept" required>
-                                                <option value="">Select Department</option>
+                                                <option value="">Select Colleges</option>
                                                 <option value="UA">UA</option>
                                                 <option value="CCIS">CCIS</option>
                                                 <option value="CBA">CBA</option>

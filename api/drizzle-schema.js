@@ -44,6 +44,7 @@ export const joined_events = pgTable('joined_events', {
   attended: boolean('attended').default(false),
   time_in: timestamp('time_in'),
   time_out: timestamp('time_out'),
+  is_archived: boolean('is_archived').default(false),
 });
 
 export const users = pgTable('users', {

@@ -42,23 +42,26 @@ const ChatStyles = () => (
 
     .chat-window-body { background-color: #f5f5f5; }
     
-    /* --- FIXED CHAT BUBBLE CSS --- */
     .chat-bubble { 
       padding: 10px 15px; 
       border-radius: 20px; 
-      
-      /* New properties to fix stacking letters */
       width: fit-content; 
       display: inline-block;
       max-width: 100%; 
-      
       word-wrap: break-word; 
+      position: relative;
     }
-    /* ----------------------------- */
 
     .chat-bubble.me { background-color: #711212; color: white; border-bottom-right-radius: 5px; }
     .chat-bubble.other { background-color: #ffffff; color: #333; border: 1px solid #e9e9e9; border-bottom-left-radius: 5px; }
     .chat-timestamp { font-size: 0.75rem; color: #6c757d; margin-top: 2px; }
+
+    /* Archive & Delete hover actions */
+    .chat-action-btn { opacity: 0; transition: opacity 0.2s; color: #6c757d; }
+    .chat-list-item:hover .chat-action-btn { opacity: 1; }
+    .chat-list-item.active .chat-action-btn { color: white; }
+    .msg-delete-btn { font-size: 0.8rem; cursor: pointer; color: #ff9b9b; margin-left: 8px; visibility: hidden; }
+    .chat-bubble:hover .msg-delete-btn { visibility: visible; }
 
     /* Mobile Modal Specifics */
     .mobile-chat-modal {
@@ -91,6 +94,10 @@ export default function Chats() {
   const [newMessage, setNewMessage] = useState("");
   const [isLargeScreen, setIsLargeScreen] = useState(window.innerWidth >= 992);
 
+  // Archive states
+  const [archivedEventIds, setArchivedEventIds] = useState([]);
+  const [showArchived, setShowArchived] = useState(false);
+
   const messagesEndRef = useRef(null);
   const navigate = useNavigate();
 
@@ -112,22 +119,34 @@ export default function Chats() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  useEffect(() => {
+  // --- REUSABLE FETCH FUNCTION ---
+  const fetchMyChats = () => {
     if (currentUserEmail) {
       axios.get(`${import.meta.env.VITE_API_URL}/my-chats/${currentUserEmail}`)
         .then(res => {
           const events = Array.isArray(res.data[0]) ? res.data[0] : res.data;
           setJoinedEvents(events);
+          
+          // Check for string "true" OR boolean true
+          const archivedIds = events
+            .filter(ev => String(ev.is_archived) === "true" || ev.is_archived === true)
+            .map(ev => ev.EventID || ev.event_id);
+            
+          setArchivedEventIds(archivedIds);
         })
         .catch(err => console.error("Chat list error:", err));
     }
+  };
+
+  useEffect(() => {
+    fetchMyChats();
   }, [currentUserEmail]);
 
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages, activeChatEvent]); 
+  }, [messages, activeChatEvent]);
 
   useEffect(() => {
     let poll;
@@ -153,14 +172,12 @@ export default function Chats() {
 
   const handleViewChat = (event) => {
     const eventId = event.EventID || event.event_id;
-
     const markAsRead = () => {
       axios.put(`${import.meta.env.VITE_API_URL}/chats/mark-read`, {
         email: currentUserEmail,
         eventId: eventId
       }).catch(err => console.error("Failed to mark as read", err));
     };
-
     setMessages([]);
     setActiveChatEvent(event);
     markAsRead();
@@ -169,7 +186,6 @@ export default function Chats() {
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !activeChatEvent) return;
     const eventId = activeChatEvent.EventID || activeChatEvent.event_id;
-
     try {
       await axios.post(`${import.meta.env.VITE_API_URL}/chatroom/${eventId}`, {
         user_email: currentUserEmail,
@@ -186,6 +202,59 @@ export default function Chats() {
   const handleCloseActiveChat = () => {
     setActiveChatEvent(null);
     setMessages([]);
+  };
+
+  // --- ARCHIVE LOGIC ---
+  const toggleArchiveStatus = async (e, eventId) => {
+    e.stopPropagation();
+    const isCurrentlyArchived = archivedEventIds.includes(eventId);
+    
+    // Update UI Instantly
+    if (isCurrentlyArchived) {
+        setArchivedEventIds(archivedEventIds.filter(id => id !== eventId));
+    } else {
+        setArchivedEventIds([...archivedEventIds, eventId]);
+        if (activeChatEvent && (activeChatEvent.EventID === eventId || activeChatEvent.event_id === eventId)) {
+            setActiveChatEvent(null);
+        }
+    }
+
+    try {
+        await axios.put(`${import.meta.env.VITE_API_URL}/chats/archive`, {
+            email: currentUserEmail,
+            eventId: eventId,
+            isArchived: !isCurrentlyArchived
+        });
+    } catch (err) {
+        console.error("Archive request failed", err);
+    }
+  };
+
+  // --- DELETE LOGIC ---
+  const handleDeleteChat = async (e, eventId) => {
+    e.stopPropagation();
+    if (window.confirm("Permanently delete this chat?")) {
+      try {
+          await axios.delete(`${import.meta.env.VITE_API_URL}/chats/remove`, {
+              data: { email: currentUserEmail, eventId: eventId }
+          });
+          
+          setJoinedEvents(joinedEvents.filter(ev => (ev.EventID || ev.event_id) !== eventId));
+          setArchivedEventIds(archivedEventIds.filter(id => id !== eventId));
+          if (activeChatEvent && (activeChatEvent.EventID === eventId || activeChatEvent.event_id === eventId)) {
+            setActiveChatEvent(null);
+          }
+      } catch (err) {
+          console.error("Delete request failed", err);
+          alert("Could not delete. Check backend connection.");
+      }
+    }
+  };
+
+  const handleDeleteMessage = (messageId) => {
+    if (window.confirm("Delete this message?")) {
+      setMessages(messages.filter(m => (m.id || m.sent_at) !== messageId));
+    }
   };
 
   const getEventData = (event) => {
@@ -210,12 +279,15 @@ export default function Chats() {
 
   const activeChatData = activeChatEvent ? getEventData(activeChatEvent) : null;
 
-  // --- REUSABLE CHAT CONTENT RENDERER ---
+  const filteredEvents = joinedEvents.filter(event => {
+    const id = event.EventID || event.event_id;
+    return showArchived ? archivedEventIds.includes(id) : !archivedEventIds.includes(id);
+  });
+
   const renderChatContent = () => {
     if (!activeChatData) return null;
     return (
       <div className="d-flex flex-column h-100 bg-white">
-        {/* Header */}
         <div className="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
           <div className="d-flex align-items-center">
             <img
@@ -226,9 +298,7 @@ export default function Chats() {
             />
             <div>
               <h5 className="fw-bold mb-0 text-dark">{activeChatData.name}</h5>
-              <small className="text-muted">
-                {activeChatData.venue}
-              </small>
+              <small className="text-muted">{activeChatData.venue}</small>
             </div>
           </div>
           <button className="btn btn-sm btn-outline-secondary" onClick={handleCloseActiveChat}>
@@ -236,20 +306,19 @@ export default function Chats() {
           </button>
         </div>
 
-        {/* Messages Body */}
         <div className="card-body chat-window-body overflow-auto p-3 flex-grow-1">
           {messages && messages.length > 0 ? (
             messages.map((m, idx) => {
               const isMe = m.user_email === currentUserEmail;
               return (
                 <div key={idx} className={`d-flex mb-3 ${isMe ? 'justify-content-end' : 'justify-content-start'}`}>
-                  {/* Wrapper width control */}
                   <div style={{ maxWidth: '85%' }} className={isMe ? 'd-flex flex-column align-items-end' : 'd-flex flex-column align-items-start'}>
                     <div className={`small text-muted ${isMe ? 'text-end' : ''}`}>
                       {m.user_email.split('@')[0]}
                     </div>
                     <div className={`chat-bubble ${isMe ? 'me' : 'other'}`}>
                       {m.message_content}
+                      {isMe && <i className="bi bi-trash-fill msg-delete-btn" onClick={() => handleDeleteMessage(m.id || m.sent_at)}></i>}
                     </div>
                     <div className={`chat-timestamp ${isMe ? 'text-end' : ''}`}>
                       {formatTime(m.sent_at)}
@@ -264,7 +333,6 @@ export default function Chats() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Footer */}
         <div className="card-footer bg-white p-3">
           <div className="d-flex gap-2">
             <input
@@ -353,6 +421,7 @@ export default function Chats() {
               </a>
             </li>
           </ul>
+          <img src={STAT} alt="Sidebar design" style={{ position: "absolute", bottom: "-4.5rem", left: "50%", transform: "translateX(-55%)", width: "400px", opacity: 0.9, zIndex: -1, pointerEvents: "none" }} />
         </div>
       </div>
 
@@ -363,89 +432,99 @@ export default function Chats() {
         transition: 'margin-left 0.3s ease-in-out'
       }}>
         {isLargeScreen ? (
-          /* --- DESKTOP VIEW --- */
           <div className="chat-layout-container">
-            {/* Left Panel: List */}
             <div className="chat-list-panel bg-white">
-              <div className="p-3 border-bottom">
-                <h5 className="mb-0 fw-bold">My Chats</h5>
+              <div className="p-3 border-bottom d-flex justify-content-between align-items-center">
+                <h5 className="mb-0 fw-bold">{showArchived ? 'Archived' : 'My Chats'}</h5>
+                <button className="btn btn-sm btn-outline-dark" onClick={() => setShowArchived(!showArchived)}>
+                  {showArchived ? 'Back' : 'View Archive'}
+                </button>
               </div>
               <div className="chat-list-body">
-                {joinedEvents.length > 0 ? (
+                {filteredEvents.length > 0 ? (
                   <div className="list-group list-group-flush">
-                    {joinedEvents.map((event, i) => {
+                    {filteredEvents.map((event, i) => {
                       const data = getEventData(event);
                       const isActive = activeChatEvent && (activeChatEvent.EventID === data.id || activeChatEvent.event_id === data.id);
                       return (
-                        <a key={i} className={`list-group-item list-group-item-action chat-list-item ${isActive ? 'active' : ''}`}
+                        <div key={i} className={`list-group-item list-group-item-action chat-list-item d-flex align-items-center ${isActive ? 'active' : ''}`}
                           onClick={() => handleViewChat(event)}>
-                          <div className="d-flex align-items-center">
-                            <img src={data.photo ? `${import.meta.env.VITE_API_URL}/api/upload/${data.photo}` : "https://via.placeholder.com/50"}
-                              className="rounded-circle me-3 chat-avatar" alt={data.name} onError={(e) => { e.target.src = "https://via.placeholder.com/50"; }} />
-                            <div className="flex-grow-1">
-                              <div className="fw-bold text-truncate">{data.name}</div>
-                              <div className="text-truncate" style={{ fontSize: "0.8rem" }}>{data.venue}</div>
-                            </div>
+                          <img src={data.photo ? `${import.meta.env.VITE_API_URL}/api/upload/${data.photo}` : "https://via.placeholder.com/50"}
+                            className="rounded-circle me-3 chat-avatar" alt={data.name} />
+                          <div className="flex-grow-1 overflow-hidden">
+                            <div className="fw-bold text-truncate">{data.name}</div>
+                            <div className="text-truncate" style={{ fontSize: "0.8rem" }}>{data.venue}</div>
                           </div>
-                        </a>
+                          <div className="d-flex gap-2">
+                            <button className="btn btn-link p-0 chat-action-btn" 
+                                    title={showArchived ? "Unarchive" : "Archive"} 
+                                    onClick={(e) => toggleArchiveStatus(e, data.id)}>
+                              <i className={`bi bi-archive${showArchived ? '-fill' : ''}`}></i>
+                            </button>
+                            
+                            {/* UPDATED: Delete button now always shows (on hover) */}
+                            <button className="btn btn-link p-0 chat-action-btn text-danger" title="Delete" onClick={(e) => handleDeleteChat(e, data.id)}>
+                              <i className="bi bi-trash-fill"></i>
+                            </button>
+                          </div>
+                        </div>
                       );
                     })}
                   </div>
                 ) : (
-                  <p className="text-center text-muted p-3">You haven't joined any events yet.</p>
+                  <p className="text-center text-muted p-3">Nothing to show here.</p>
                 )}
               </div>
             </div>
 
-            {/* Right Panel: Window */}
             <div className="chat-window-panel">
-              {activeChatEvent ? (
-                renderChatContent()
-              ) : (
+              {activeChatEvent ? renderChatContent() : (
                 <div className="d-flex h-100 justify-content-center align-items-center bg-light">
                   <div className="text-center text-muted">
                     <i className="bi bi-chat-dots-fill" style={{ fontSize: '4rem' }}></i>
                     <h4 className="mt-2">Select a chat</h4>
-                    <p>Choose one of your joined events.</p>
                   </div>
                 </div>
               )}
             </div>
           </div>
         ) : (
-          /* --- MOBILE VIEW: LIST ONLY --- */
+          /* --- MOBILE VIEW --- */
           <div className="container" style={{ paddingTop: '1rem' }}>
-            <div className="row">
-              <div className="col-12">
-                <h4 className="fw-bold">My Chats</h4>
-                {joinedEvents.length > 0 ? (
-                  <div className="list-group">
-                    {joinedEvents.map((event, i) => {
-                      const data = getEventData(event);
-                      return (
-                        <a key={i} className="list-group-item list-group-item-action d-flex align-items-center p-3"
-                          onClick={() => handleViewChat(event)}>
-                          <img src={data.photo ? `${import.meta.env.VITE_API_URL}/api/upload/${data.photo}` : "https://via.placeholder.com/50"}
-                            className="rounded-circle me-3 chat-avatar" alt={data.name} onError={(e) => { e.target.src = "https://via.placeholder.com/50"; }} />
-                          <div className="flex-grow-1">
-                            <div className="fw-bold text-truncate">{data.name}</div>
-                            <div className="text-muted text-truncate">{data.venue}</div>
-                          </div>
-                          <i className="bi bi-chevron-right"></i>
-                        </a>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="text-center text-muted mt-5">You haven't joined any events yet.</p>
-                )}
-              </div>
+            <div className="d-flex justify-content-between align-items-center mb-3 px-2">
+              <h4 className="fw-bold m-0">{showArchived ? 'Archived' : 'My Chats'}</h4>
+              <button className="btn btn-sm btn-outline-dark" onClick={() => setShowArchived(!showArchived)}>
+                {showArchived ? 'Exit Archive' : 'Archive'}
+              </button>
             </div>
+            {filteredEvents.length > 0 ? (
+              <div className="list-group">
+                {filteredEvents.map((event, i) => {
+                  const data = getEventData(event);
+                  return (
+                    <div key={i} className="list-group-item list-group-item-action d-flex align-items-center p-3"
+                      onClick={() => handleViewChat(event)}>
+                      <img src={data.photo ? `${import.meta.env.VITE_API_URL}/api/upload/${data.photo}` : "https://via.placeholder.com/50"}
+                        className="rounded-circle me-3 chat-avatar" alt={data.name} />
+                      <div className="flex-grow-1 overflow-hidden">
+                        <div className="fw-bold text-truncate">{data.name}</div>
+                      </div>
+                      <div className="d-flex gap-3">
+                        <i className="bi bi-archive" title={showArchived ? "Unarchive" : "Archive"} onClick={(e) => toggleArchiveStatus(e, data.id)}></i>
+                        {/* UPDATED: Delete button always visible */}
+                        <i className="bi bi-trash text-danger" onClick={(e) => handleDeleteChat(e, data.id)}></i>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-center text-muted mt-5">No chats found.</p>
+            )}
           </div>
         )}
       </div>
 
-      {/* --- MOBILE MODAL (POPUP) --- */}
       {!isLargeScreen && activeChatEvent && (
         <div className="mobile-chat-modal">
           <div className="mobile-chat-content animate__animated animate__fadeInUp">
