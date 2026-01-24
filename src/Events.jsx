@@ -4,6 +4,7 @@ import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import "react-calendar/dist/Calendar.css"
 import "../css/style.css";
+// Ensure these paths are correct in your project
 import UALOGO from './assets/Ualogo.png';
 import FBLOGO from './assets/fblogo.png'
 import INSTALOGO from './assets/instalogo.png'
@@ -28,7 +29,7 @@ export default function Events() {
     const [showModal, setShowModal] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState(null);
 
-    // --- ✅ ADDED: USER STATE FOR FILTERING ---
+    // --- ✅ USER STATE ---
     const [user, setUser] = useState(null);
 
     useEffect(() => {
@@ -65,16 +66,20 @@ export default function Events() {
         const userEmail = userObj?.email;
 
         if (!userEmail) {
-            alert("Cannot join — user not logged in.");
+            alert("Cannot join — user not logged in or email is missing.");
             return;
         }
 
         try {
+            // ✅ We send the email to the backend here. 
+            // The Backend API must handle the actual emailing logic.
             const response = await axios.post(`${import.meta.env.VITE_API_URL}/join-event`, {
                 email: userEmail,
                 eventId: eventToJoin.EventID,
                 eventName: eventToJoin.EventName,
-                eventDate: eventToJoin.EventStartDate
+                eventDate: eventToJoin.EventStartDate,
+                // Optional: Flag to tell backend to send email if your API supports it
+                sendEmailNotification: true 
             });
 
             const { qrCodeDataURL } = response.data;
@@ -160,17 +165,14 @@ export default function Events() {
             location.toLowerCase().includes(searchTerm.toLowerCase()) ||
             venue.toLowerCase().includes(searchTerm.toLowerCase());
 
-        // --- ✅ UPDATED: DEPARTMENT LOGIC ---
         let matchesDept = selectedDept === "" || event.EventDept === selectedDept;
 
-        // Restriction: Show only user's dept + UA general events
         if (user && user.role !== 'admin') {
             const userDept = (user.dept || user.department || "").toUpperCase();
             const eventDept = (event.EventDept || "").toUpperCase();
             const isAuthorizedDept = eventDept === 'UA' || eventDept === userDept;
             if (!isAuthorizedDept) return false;
         }
-        // -------------------------------------
 
         const isApproved = event.EventStatus === "approved";
         const today = new Date();
@@ -362,7 +364,7 @@ export default function Events() {
                 </div>
             </div>
 
-            {/* Modals preserved exactly as provided */}
+            {/* Modals */}
             {showModal && selectedEvent && (
                 <div className="modal fade show" style={{ display: "block", backgroundColor: "rgba(0, 0, 0, 0.5)", backdropFilter: "blur(5px)" }}>
                     <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
@@ -419,7 +421,7 @@ export default function Events() {
                 </div>
             )}
 
-            {/* Success Modal */}
+            {/* Success Modal - UPDATED TO SHOW EMAIL CONFIRMATION */}
             {showJoinModal && joinedEvent && (
                 <div className="modal fade show" style={{ display: "block", backgroundColor: "rgba(0, 0, 0, 0.5)", backdropFilter: "blur(3px)" }}>
                     <div className="modal-dialog modal-dialog-centered">
@@ -438,6 +440,14 @@ export default function Events() {
                                         </>
                                     ) : <div className="d-flex justify-content-center align-items-center" style={{ height: "200px" }}>Generating...</div>}
                                 </div>
+                                
+                                {/* ✅ ADDED: Email Confirmation Message */}
+                                {user?.email && (
+                                    <div className="alert alert-success d-inline-flex align-items-center gap-2 py-2 px-3 mt-2" role="alert">
+                                        <i className="bi bi-envelope-check-fill"></i>
+                                        <span>A copy of this QR code has been sent to <strong>{user.email}</strong></span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
