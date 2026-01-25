@@ -55,6 +55,21 @@ export default function AdminHome() {
     // --- 4. SUBMIT DATA ---
     const submitData = async (e) => {
         e.preventDefault();
+
+        // --- START DATE VALIDATION ---
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Reset time to midnight for accurate day comparison
+        
+        // Parse the input date manually to avoid timezone shift issues
+        const [year, month, day] = e.target.startDate.value.split('-').map(Number);
+        const selectedDate = new Date(year, month - 1, day);
+
+        if (selectedDate < today) {
+            alert("❌ Invalid Date: You cannot upload an event with a past date.");
+            return; // Ignore submission
+        }
+        // --- END DATE VALIDATION ---
+
         const file = e.target.photo.files[0];
 
         if (file) {

@@ -109,6 +109,10 @@ export default function AdminEventReports() {
     const [selectedDept, setSelectedDept] = useState("");
     const [joinCounts, setJoinCounts] = useState({});
 
+    // --- ✅ ADDED CALCULATION LOGIC ---
+    const totalJoined = participants.length;
+    const totalAttended = participants.filter(p => p.timeIn && p.timeIn !== "N/A" && p.timeIn !== null).length;
+
     // Unchanged useEffect hooks
     useEffect(() => {
         Tick(fetchEvents);
@@ -204,6 +208,9 @@ export default function AdminEventReports() {
         <p><b>Date:</b> ${new Date(selectedEvent.EventDate).toDateString()}</p>
         <p><b>Venue:</b> ${selectedEvent.EventVenue}</p>
         <p><b>Department:</b> ${selectedEvent.EventDept}</p>
+        <h3>Summary:</h3>
+        <p>Total Joined: ${totalJoined}</p>
+        <p>Total Attended: ${totalAttended}</p>
         <h3>Participants:</h3>
         <table>
           <thead>
@@ -248,6 +255,7 @@ export default function AdminEventReports() {
         doc.setTextColor(100);
         doc.text(`Date: ${new Date(selectedEvent.EventDate).toDateString()}`, 14, 30);
         doc.text(`Venue: ${selectedEvent.EventVenue}`, 14, 36);
+        doc.text(`Joined: ${totalJoined} | Attended: ${totalAttended}`, 14, 42);
         const tableColumn = ["#", "Name", "Email", "Joined On", "Time In", "Time Out"];
         const tableRows = [];
         participants.forEach((p, i) => {
@@ -264,7 +272,7 @@ export default function AdminEventReports() {
         autoTable(doc, {
             head: [tableColumn],
             body: tableRows,
-            startY: 45,
+            startY: 48,
             theme: 'grid',
             styles: { fontSize: 8 },
             columnStyles: { 2: { cellWidth: 40 }, 3: { cellWidth: 35 } }
@@ -279,6 +287,8 @@ export default function AdminEventReports() {
             ["Event:", selectedEvent.EventName],
             ["Date:", new Date(selectedEvent.EventDate).toDateString()],
             ["Venue:", selectedEvent.EventVenue],
+            ["Total Joined:", totalJoined],
+            ["Total Attended:", totalAttended],
             []
         ];
         const tableHeaders = ["#", "Name", "Email", "Joined On", "Time In", "Time Out"];
@@ -338,6 +348,8 @@ export default function AdminEventReports() {
                 <p><b>Date:</b> ${new Date(selectedEvent.EventDate).toDateString()}</p>
                 <p><b>Venue:</b> ${selectedEvent.EventVenue}</p>
                 <p><b>Department:</b> ${selectedEvent.EventDept}</p>
+                <p><b>Total Joined:</b> ${totalJoined}</p>
+                <p><b>Total Attended:</b> ${totalAttended}</p>
                 <br/>
                 <h3>Participants:</h3>
                 <table>
@@ -593,6 +605,23 @@ export default function AdminEventReports() {
                                 <button type="button" className="btn-close btn-close-white" onClick={handleCloseModal}></button>
                             </div>
                             <div className="modal-body p-4">
+
+                                {/* ✅ --- ADDED STATS BOXES HERE --- */}
+                                <div className="row g-3 mb-4">
+                                    <div className="col-md-6">
+                                        <div className="p-3 border rounded bg-light text-center">
+                                            <h6 className="text-muted small fw-bold mb-1">TOTAL JOINED</h6>
+                                            <h2 className="fw-bold mb-0" style={{ color: '#711212' }}>{totalJoined}</h2>
+                                        </div>
+                                    </div>
+                                    <div className="col-md-6">
+                                        <div className="p-3 border rounded bg-light text-center">
+                                            <h6 className="text-muted small fw-bold mb-1">TOTAL ATTENDED</h6>
+                                            <h2 className="fw-bold mb-0 text-success">{totalAttended}</h2>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 {participants.length > 0 ? (
                                     <div className="table-responsive">
                                         <table className="table table-striped table-hover">
