@@ -14,7 +14,12 @@ export const accounts = pgTable('accounts', {
 export const events = pgTable('events', {
   event_id: serial('event_id').primaryKey(),
   event_name: varchar('event_name', { length: 50 }).notNull(),
+
+  // --- TIME COLUMNS ---
   event_time: time('event_time'),
+  event_time_end: time('event_time_end'), // <--- I ADDED THIS LINE FOR YOU
+  // --------------------
+
   event_start_date: date('event_start_date').notNull(),
   event_end_date: date('event_end_date'),
   event_venue: char('event_venue', { length: 50 }),
@@ -45,6 +50,7 @@ export const joined_events = pgTable('joined_events', {
   time_in: timestamp('time_in'),
   time_out: timestamp('time_out'),
   is_archived: boolean('is_archived').default(false),
+  event_time_end: varchar('event_time_end'),
 });
 
 export const users = pgTable('users', {
@@ -68,5 +74,5 @@ export const user_activity = pgTable('user_activity', {
 export const sib_campus_accounts = pgTable('sib_campus_accounts', {
   email: varchar('email', { length: 100 }).primaryKey(),
   // ✅ ADD THIS LINE - It must match your database column name exactly
-  department: varchar('department', { length: 255 }), 
+  department: varchar('department', { length: 255 }),
 });

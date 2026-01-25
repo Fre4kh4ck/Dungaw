@@ -822,11 +822,11 @@ server.get("/events/status/:status", async (req, res) => {
   try {
     const { status } = req.params;
 
-    // We select specific columns and rename them (Alias) to match your React code
     const rows = await db.select({
       EventID: events.event_id,
       EventName: events.event_name,
       EventTime: events.event_time,
+      EventTimeEnd: events.event_time_end,
       EventStartDate: events.event_start_date,
       EventEndDate: events.event_end_date,
       EventVenue: events.event_venue,
@@ -837,14 +837,13 @@ server.get("/events/status/:status", async (req, res) => {
       EventDenialReason: events.event_denial_reason,
       EventDate: events.event_start_date
     })
-      .from(events)
-      .where(eq(events.event_status, status))
-      .orderBy(desc(events.event_start_date));
+    .from(events)
+    .where(eq(events.event_status, status))
+    .orderBy(desc(events.event_start_date));
 
     res.json(rows);
-
   } catch (err) {
-    console.error("Error fetching events by status:", err);
+    console.error("Error fetching events:", err);
     res.status(500).json({ error: "Failed to fetch events" });
   }
 });
@@ -889,31 +888,25 @@ server.post('/events/add', upload.single('photo'), async (req, res) => {
   try {
     const task = req.body;
     const file = req.file;
-
-    // ✅ FIX 1: Read the status sent from React
-    // If React says "approved", this variable becomes "approved"
-    // If it's missing, it defaults to "submitted"
     const eventStatus = task.status || 'submitted';
-
-    const startDate = task.startDate;
-    const endDate = task.endDate || null;
 
     await db.insert(events).values({
       event_name: task.title,
       event_time: task.time,
-      event_start_date: startDate,
-      event_end_date: endDate,
+
+      // 👇 ADD THIS LINE to save the end time 👇
+      event_time_end: task.event_time_end,
+
+      event_start_date: task.startDate,
+      event_end_date: task.endDate || null,
       event_venue: task.venue,
       event_description: task.description,
       event_photo: file ? file.originalname : null,
       event_dept: task.dept,
-
-      // ✅ FIX 2: Use the variable, NOT the hardcoded string 'submitted'
       event_status: eventStatus
     });
 
     res.json({ success: true });
-
   } catch (err) {
     console.error("Error adding event:", err);
     res.status(500).json({ success: false, error: "Failed to add event" });
