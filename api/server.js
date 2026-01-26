@@ -39,6 +39,54 @@ server.use(cors({
   credentials: true
 }));
 
+// =============================================================
+// ✅ NEW ROUTE: Get All Events a User has Joined (with QR)
+// =============================================================
+server.get('/user-events/:email', async (req, res) => {
+  const { email } = req.params;
+
+  try {
+    // 1. Fetch event details + ticket_id from DB
+    const rows = await db.select({
+      eventId: joined_events.event_id,
+      ticketId: joined_events.ticket_id,
+      eventName: events.event_name,
+      EventStartDate: events.event_start_date, // Matching frontend casing
+      EventVenue: events.event_venue,
+      userEmail: joined_events.user_email
+    })
+      .from(joined_events)
+      .innerJoin(events, eq(joined_events.event_id, events.event_id))
+      .where(eq(joined_events.user_email, email))
+      .orderBy(desc(joined_events.joined_at));
+
+    // 2. Regenerate QR Codes dynamically
+    // Since we don't store the QR image in DB, we recreate it using the ticket_id
+    const eventsWithQr = await Promise.all(rows.map(async (row) => {
+
+      // Matches the data structure used in /join-event
+      const qrData = JSON.stringify({
+        email: row.userEmail,
+        eventId: row.eventId,
+        ticketId: row.ticketId
+      });
+
+      // Generate Base64 Data URL for the frontend <img> tag
+      const qrCodeUrl = await qr.toDataURL(qrData);
+
+      return {
+        ...row,
+        qrCodeUrl // This is what the React Modal needs
+      };
+    }));
+
+    res.json(eventsWithQr);
+
+  } catch (err) {
+    console.error("Error fetching user events:", err);
+    res.status(500).json({ error: "Failed to fetch joined events" });
+  }
+});
 // ✅ TOGGLE ARCHIVE STATUS
 server.put("/chats/archive", async (req, res) => {
   const { email, eventId, isArchived } = req.body;
@@ -837,9 +885,9 @@ server.get("/events/status/:status", async (req, res) => {
       EventDenialReason: events.event_denial_reason,
       EventDate: events.event_start_date
     })
-    .from(events)
-    .where(eq(events.event_status, status))
-    .orderBy(desc(events.event_start_date));
+      .from(events)
+      .where(eq(events.event_status, status))
+      .orderBy(desc(events.event_start_date));
 
     res.json(rows);
   } catch (err) {

@@ -40,6 +40,28 @@ export default function Events() {
     }, []);
     // ------------------------------------------
 
+    // --- ✅ NEW ADDITION: QR LIST & ENLARGE STATE ---
+    const [showQrListModal, setShowQrListModal] = useState(false);
+    const [myJoinedEvents, setMyJoinedEvents] = useState([]);
+    const [enlargedQrUrl, setEnlargedQrUrl] = useState(null); // <--- NEW STATE FOR ZOOM
+
+    // --- FUNCTION TO FETCH JOINED EVENTS ---
+    const fetchMyJoinedEvents = async () => {
+        if (!user) return;
+        const userEmail = user.email || user.UserEmail;
+        
+        try {
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/user-events/${userEmail}`);
+            setMyJoinedEvents(res.data);
+            setShowQrListModal(true);
+        } catch (err) {
+            console.error("Error fetching joined events:", err);
+            // Open modal anyway to show empty state if error or empty
+            setShowQrListModal(true);
+        }
+    };
+    // ----------------------------------------------------
+
     const handleViewInfo = (event) => {
         setSelectedEvent(event);
         setShowModal(true);
@@ -62,24 +84,45 @@ export default function Events() {
     };
 
     const confirmJoinEvent = async () => {
-        const userObj = JSON.parse(localStorage.getItem("user"));
-        const userEmail = userObj?.email;
+        // 1. Get User
+        const userObjString = localStorage.getItem("user");
+        if (!userObjString) {
+            alert("Error: You appear to be logged out. Please log in again.");
+            return;
+        }
+
+        const userObj = JSON.parse(userObjString);
+        const userEmail = userObj?.email || userObj?.UserEmail;
 
         if (!userEmail) {
-            alert("Cannot join — user not logged in or email is missing.");
+            alert("Error: Could not find an email address associated with your account.");
+            return;
+        }
+
+        // 2. Get Event Data
+        if (!eventToJoin) {
+            alert("Error: No event selected.");
+            return;
+        }
+
+        const e_id = eventToJoin.EventID || eventToJoin.event_id || eventToJoin.id;
+        const e_name = eventToJoin.EventName || eventToJoin.event_name || eventToJoin.name;
+        const e_date = eventToJoin.EventStartDate || eventToJoin.event_start_date || eventToJoin.date;
+        const e_venue = eventToJoin.EventVenue || eventToJoin.event_venue; 
+
+        if (!e_id) {
+            alert("Error: Could not determine Event ID.");
             return;
         }
 
         try {
-            // ✅ We send the email to the backend here. 
-            // The Backend API must handle the actual emailing logic.
             const response = await axios.post(`${import.meta.env.VITE_API_URL}/join-event`, {
                 email: userEmail,
-                eventId: eventToJoin.EventID,
-                eventName: eventToJoin.EventName,
-                eventDate: eventToJoin.EventStartDate,
-                // Optional: Flag to tell backend to send email if your API supports it
-                sendEmailNotification: true 
+                eventId: e_id,
+                eventName: e_name,
+                eventDate: e_date,
+                eventVenue: e_venue,
+                sendEmailNotification: true
             });
 
             const { qrCodeDataURL } = response.data;
@@ -91,15 +134,21 @@ export default function Events() {
 
             setJoinCounts(prev => ({
                 ...prev,
-                [eventToJoin.EventID]: (prev[eventToJoin.EventID] || 0) + 1
+                [e_id]: (prev[e_id] || 0) + 1
             }));
+
             setEventToJoin(null);
+
         } catch (err) {
-            console.error("Join event error:", err.response?.data || err);
-            if (err.response?.data?.message === "Already joined this event") {
-                alert("You have already joined this event.");
+            console.error("❌ JOIN ERROR DETAILS:", err);
+            if (err.response) {
+                if (err.response.status === 409 || err.response.data.message?.includes("Already joined")) {
+                    alert("You have already joined this event!");
+                } else {
+                    alert(`Failed to join: ${err.response.data.message || "Unknown server error"}`);
+                }
             } else {
-                alert("Failed to join event. Please try again.");
+                alert(`Error: ${err.message}`);
             }
             setShowConfirmModal(false);
         }
@@ -215,7 +264,19 @@ export default function Events() {
                             <div className="smc-text" style={{ fontSize: '0.85rem' }}>Sibalom Main Campus</div>
                         </div>
                     </div>
-                    <button className="btn btn-outline-light d-lg-none" onClick={toggleSidebar}>☰</button>
+
+                    <div className="d-flex align-items-center gap-2">
+                        {user && (
+                            <button 
+                                className="btn btn-outline-light me-2 fw-semibold" 
+                                onClick={fetchMyJoinedEvents}
+                                style={{ borderRadius: '20px', fontSize: '0.9rem' }}
+                            >
+                                <i className="bi bi-qr-code me-1"></i> (Event Qr)
+                            </button>
+                        )}
+                        <button className="btn btn-outline-light d-lg-none" onClick={toggleSidebar}>☰</button>
+                    </div>
                 </nav>
 
                 <div className={`border-end text-light position-fixed top-0 start-0 h-100 sidebar d-flex flex-column ${sidebarOpen ? "show" : ""}`}
@@ -318,13 +379,6 @@ export default function Events() {
                                     style={{ border: "none", outline: "none", padding: "10px", background: "transparent", borderLeft: isLargeScreen ? "1px solid #eee" : "none" }}>
                                     <option value="">UA</option>
                                     <option value="CCIS">CCIS</option>
-                                    <option value="CEA">CEA</option>
-                                    <option value="CBA">CBA</option>
-                                    <option value="CCJE">CCJE</option>
-                                    <option value="CMS">CMS</option>
-                                    <option value="CAS">CAS</option>
-                                    <option value="CIT">CIT</option>
-                                    <option value="CTE">CTE</option>
                                 </select>
                             </div>
                         </div>
@@ -375,7 +429,7 @@ export default function Events() {
                             </div>
                             <div className="modal-body p-0">
                                 <img src={selectedEvent.EventPhoto ? `${import.meta.env.VITE_API_URL}/api/upload/${selectedEvent.EventPhoto}` : "/fallback.jpg"}
-                                     alt={selectedEvent.EventName} style={{ width: '100%', height: '300px', objectFit: 'cover' }} />
+                                    alt={selectedEvent.EventName} style={{ width: '100%', height: '300px', objectFit: 'cover' }} />
                                 <div className="p-4">
                                     <ul className="list-group list-group-flush mb-4">
                                         <li className="list-group-item d-flex gap-3 px-0 align-items-center">
@@ -421,7 +475,7 @@ export default function Events() {
                 </div>
             )}
 
-            {/* Success Modal - UPDATED TO SHOW EMAIL CONFIRMATION */}
+            {/* Success Modal */}
             {showJoinModal && joinedEvent && (
                 <div className="modal fade show" style={{ display: "block", backgroundColor: "rgba(0, 0, 0, 0.5)", backdropFilter: "blur(3px)" }}>
                     <div className="modal-dialog modal-dialog-centered">
@@ -440,14 +494,100 @@ export default function Events() {
                                         </>
                                     ) : <div className="d-flex justify-content-center align-items-center" style={{ height: "200px" }}>Generating...</div>}
                                 </div>
-                                
-                                {/* ✅ ADDED: Email Confirmation Message */}
                                 {user?.email && (
                                     <div className="alert alert-success d-inline-flex align-items-center gap-2 py-2 px-3 mt-2" role="alert">
                                         <i className="bi bi-envelope-check-fill"></i>
                                         <span>A copy of this QR code has been sent to <strong>{user.email}</strong></span>
                                     </div>
                                 )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ✅ NEW: USER JOINED EVENTS LIST MODAL */}
+            {showQrListModal && (
+                <div className="modal fade show" style={{ display: "block", backgroundColor: "rgba(0, 0, 0, 0.5)", backdropFilter: "blur(3px)" }}>
+                    <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                        <div className="modal-content border-0 shadow-lg rounded-4">
+                            <div className="modal-header text-white" style={{ backgroundColor: "#711212ff" }}>
+                                <h5 className="modal-title fw-bold"><i className="bi bi-qr-code-scan me-2"></i>My Event QRs</h5>
+                                <button type="button" className="btn-close btn-close-white" onClick={() => setShowQrListModal(false)}></button>
+                            </div>
+                            <div className="modal-body p-4 bg-light">
+                                <div className="alert alert-info py-2 small mb-3">
+                                    <i className="bi bi-info-circle me-2"></i>Click on a QR code to enlarge it.
+                                </div>
+                                {myJoinedEvents.length > 0 ? (
+                                    <div className="d-flex flex-column gap-3">
+                                        {myJoinedEvents.map((item, index) => (
+                                            <div key={index} className="card border-0 shadow-sm overflow-hidden">
+                                                <div className="card-body d-flex align-items-center justify-content-between p-3">
+                                                    <div>
+                                                        <h6 className="fw-bold mb-1 text-dark">{item.EventName || item.eventName || "Event Name"}</h6>
+                                                        <small className="text-muted"><i className="bi bi-calendar me-1"></i>{formatDate(item.EventStartDate || item.eventDate)}</small>
+                                                    </div>
+                                                    <div className="bg-white p-1 border rounded text-center position-relative" style={{ width: "70px", height: "70px" }}>
+                                                        {item.qrCodeUrl || item.qrCodeDataURL ? (
+                                                            // ✅ CLICK TO ENLARGE
+                                                            <img 
+                                                                src={item.qrCodeUrl || item.qrCodeDataURL} 
+                                                                alt="QR" 
+                                                                style={{ width: "100%", height: "100%", objectFit: "contain", cursor: "pointer" }} 
+                                                                title="Click to Enlarge"
+                                                                onClick={() => setEnlargedQrUrl(item.qrCodeUrl || item.qrCodeDataURL)}
+                                                            />
+                                                        ) : (
+                                                            <div className="d-flex align-items-center justify-content-center h-100 text-muted" style={{ fontSize:"0.6rem" }}>
+                                                                No QR
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-5">
+                                        <i className="bi bi-ticket-detailed display-1 text-muted opacity-25"></i>
+                                        <p className="text-muted mt-3">You haven't joined any events yet.</p>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="modal-footer border-0 bg-white">
+                                <button className="btn btn-secondary" onClick={() => setShowQrListModal(false)}>Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ✅ NEW: ENLARGED QR MODAL */}
+            {enlargedQrUrl && (
+                <div className="modal fade show" style={{ display: "block", backgroundColor: "rgba(0, 0, 0, 0.85)", zIndex: 1060 }}>
+                    <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-content bg-transparent border-0 shadow-none">
+                            <div className="modal-body p-0 text-center position-relative">
+                                {/* Close Button */}
+                                <button 
+                                    type="button" 
+                                    className="btn btn-light rounded-circle shadow position-absolute top-0 end-0 translate-middle-y me-2 mt-n3"
+                                    onClick={() => setEnlargedQrUrl(null)}
+                                    style={{ width: "40px", height: "40px", zIndex: 10 }}
+                                >
+                                    <i className="bi bi-x-lg"></i>
+                                </button>
+                                
+                                <div className="bg-white p-3 rounded-4 shadow-lg d-inline-block">
+                                    <img 
+                                        src={enlargedQrUrl} 
+                                        alt="Enlarged QR" 
+                                        className="img-fluid" 
+                                        style={{ minWidth: "280px", maxWidth: "100%", maxHeight: "70vh" }} 
+                                    />
+                                    <p className="text-muted mt-2 mb-0 small">Show this code at the venue entrance</p>
+                                </div>
                             </div>
                         </div>
                     </div>
