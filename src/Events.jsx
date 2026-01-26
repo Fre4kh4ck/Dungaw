@@ -49,7 +49,7 @@ export default function Events() {
     const fetchMyJoinedEvents = async () => {
         if (!user) return;
         const userEmail = user.email || user.UserEmail;
-        
+
         try {
             const res = await axios.get(`${import.meta.env.VITE_API_URL}/user-events/${userEmail}`);
             setMyJoinedEvents(res.data);
@@ -108,12 +108,13 @@ export default function Events() {
         const e_id = eventToJoin.EventID || eventToJoin.event_id || eventToJoin.id;
         const e_name = eventToJoin.EventName || eventToJoin.event_name || eventToJoin.name;
         const e_date = eventToJoin.EventStartDate || eventToJoin.event_start_date || eventToJoin.date;
-        const e_venue = eventToJoin.EventVenue || eventToJoin.event_venue; 
+        const e_venue = eventToJoin.EventVenue || eventToJoin.event_venue;
 
         if (!e_id) {
             alert("Error: Could not determine Event ID.");
             return;
         }
+        setIsJoining(true);
 
         try {
             const response = await axios.post(`${import.meta.env.VITE_API_URL}/join-event`, {
@@ -139,6 +140,8 @@ export default function Events() {
 
             setEventToJoin(null);
 
+            setIsJoining(false)
+
         } catch (err) {
             console.error("❌ JOIN ERROR DETAILS:", err);
             if (err.response) {
@@ -151,6 +154,7 @@ export default function Events() {
                 alert(`Error: ${err.message}`);
             }
             setShowConfirmModal(false);
+            setIsJoining(false);
         }
     };
 
@@ -267,8 +271,8 @@ export default function Events() {
 
                     <div className="d-flex align-items-center gap-2">
                         {user && (
-                            <button 
-                                className="btn btn-outline-light me-2 fw-semibold" 
+                            <button
+                                className="btn btn-outline-light me-2 fw-semibold"
                                 onClick={fetchMyJoinedEvents}
                                 style={{ borderRadius: '20px', fontSize: '0.9rem' }}
                             >
@@ -468,7 +472,21 @@ export default function Events() {
                             </div>
                             <div className="modal-footer border-0 d-flex justify-content-center">
                                 <button className="btn btn-secondary px-4" onClick={handleCloseConfirmModal}>Cancel</button>
-                                <button className="btn btn-danger px-4" style={{ backgroundColor: "#711212ff" }} onClick={confirmJoinEvent}>Yes, Join</button>
+                                <button
+                                    className="btn btn-danger px-4"
+                                    style={{ backgroundColor: "#711212ff" }}
+                                    onClick={confirmJoinEvent}
+                                    disabled={isJoining}
+                                >
+                                    {isJoining ? (
+                                        <>
+                                            <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                            Joining...
+                                        </>
+                                    ) : (
+                                        "Yes, Join"
+                                    )}
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -531,15 +549,15 @@ export default function Events() {
                                                     <div className="bg-white p-1 border rounded text-center position-relative" style={{ width: "70px", height: "70px" }}>
                                                         {item.qrCodeUrl || item.qrCodeDataURL ? (
                                                             // ✅ CLICK TO ENLARGE
-                                                            <img 
-                                                                src={item.qrCodeUrl || item.qrCodeDataURL} 
-                                                                alt="QR" 
-                                                                style={{ width: "100%", height: "100%", objectFit: "contain", cursor: "pointer" }} 
+                                                            <img
+                                                                src={item.qrCodeUrl || item.qrCodeDataURL}
+                                                                alt="QR"
+                                                                style={{ width: "100%", height: "100%", objectFit: "contain", cursor: "pointer" }}
                                                                 title="Click to Enlarge"
                                                                 onClick={() => setEnlargedQrUrl(item.qrCodeUrl || item.qrCodeDataURL)}
                                                             />
                                                         ) : (
-                                                            <div className="d-flex align-items-center justify-content-center h-100 text-muted" style={{ fontSize:"0.6rem" }}>
+                                                            <div className="d-flex align-items-center justify-content-center h-100 text-muted" style={{ fontSize: "0.6rem" }}>
                                                                 No QR
                                                             </div>
                                                         )}
@@ -570,21 +588,21 @@ export default function Events() {
                         <div className="modal-content bg-transparent border-0 shadow-none">
                             <div className="modal-body p-0 text-center position-relative">
                                 {/* Close Button */}
-                                <button 
-                                    type="button" 
+                                <button
+                                    type="button"
                                     className="btn btn-light rounded-circle shadow position-absolute top-0 end-0 translate-middle-y me-2 mt-n3"
                                     onClick={() => setEnlargedQrUrl(null)}
                                     style={{ width: "40px", height: "40px", zIndex: 10 }}
                                 >
                                     <i className="bi bi-x-lg"></i>
                                 </button>
-                                
+
                                 <div className="bg-white p-3 rounded-4 shadow-lg d-inline-block">
-                                    <img 
-                                        src={enlargedQrUrl} 
-                                        alt="Enlarged QR" 
-                                        className="img-fluid" 
-                                        style={{ minWidth: "280px", maxWidth: "100%", maxHeight: "70vh" }} 
+                                    <img
+                                        src={enlargedQrUrl}
+                                        alt="Enlarged QR"
+                                        className="img-fluid"
+                                        style={{ minWidth: "280px", maxWidth: "100%", maxHeight: "70vh" }}
                                     />
                                     <p className="text-muted mt-2 mb-0 small">Show this code at the venue entrance</p>
                                 </div>
