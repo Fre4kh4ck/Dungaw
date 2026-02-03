@@ -18,8 +18,15 @@ export default function UserAccounts() {
 
   const [showValidAccounts, setShowValidAccounts] = useState(false);
   const [validAccounts, setValidAccounts] = useState([]);
+  
+  // Add State
   const [newEmail, setNewEmail] = useState("");
   const [newDepartment, setNewDepartment] = useState("");
+
+  // Edit State
+  const [editingUser, setEditingUser] = useState(null); 
+  const [editUsername, setEditUsername] = useState("");
+  const [editDepartment, setEditDepartment] = useState("");
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -50,17 +57,21 @@ export default function UserAccounts() {
     fetchValidAccounts();
   }, []);
 
+  // --- CREATE ---
   const handleAddEmail = async () => {
-    if (!newEmail || !newDepartment) return alert("Please enter both email and department");
+    if (!newEmail || !newDepartment) return alert("Please enter both username and department");
+
+    const username = newEmail.split('@')[0];
+    const fullEmail = `${username}@antiquespride.edu.ph`;
 
     const emailRegex = /^[a-zA-Z0-9._%+-]+@antiquespride\.edu\.ph$/;
-    if (!emailRegex.test(newEmail)) {
-      return alert("Invalid email. Only @antiquespride.edu.ph accounts are allowed.");
+    if (!emailRegex.test(fullEmail)) {
+      return alert("Invalid username format.");
     }
 
     try {
       await axios.post(`${API_URL}/sib-campus-accounts`, { 
-        email: newEmail, 
+        email: fullEmail, 
         department: newDepartment 
       });
       setNewEmail("");
@@ -72,6 +83,40 @@ export default function UserAccounts() {
     }
   };
 
+  // --- EDIT FUNCTIONS (FIXED) ---
+  const handleEditClick = (user) => {
+    const username = user.email.split('@')[0];
+    setEditingUser(user); 
+    setEditUsername(username);
+    setEditDepartment(user.department);
+  };
+
+  const handleUpdateAccount = async () => {
+    if (!editUsername || !editDepartment) return alert("Fields cannot be empty");
+
+    const fullEmail = `${editUsername}@antiquespride.edu.ph`;
+
+    // FIX: Replaced PUT with DELETE then POST to avoid 404 error
+    try {
+      // 1. Delete the OLD record first
+      await axios.delete(`${API_URL}/sib-campus-accounts/${editingUser.email}`);
+
+      // 2. Add the NEW record immediately
+      await axios.post(`${API_URL}/sib-campus-accounts`, {
+        email: fullEmail,
+        department: editDepartment
+      });
+      
+      setEditingUser(null); // Close modal
+      fetchValidAccounts(); // Refresh list
+      alert("Account updated successfully!");
+    } catch (error) {
+      console.error(error);
+      alert("Failed to update account. Please try again.");
+    }
+  };
+
+  // --- DELETE ---
   const handleDeleteEmail = async (email) => {
     if (!window.confirm(`Delete ${email}?`)) return;
     try {
@@ -117,16 +162,7 @@ export default function UserAccounts() {
       alert("No data to export");
       return;
     }
-    const headers = [
-      "Name",
-      "Email",
-      "Department",
-      "Created Date",
-      "Created Time",
-      "Last Login Date",
-      "Last Login Time",
-      "Account Status"
-    ];
+    const headers = ["Name", "Email", "Department", "Created Date", "Created Time", "Last Login Date", "Last Login Time", "Account Status"];
     const rows = filteredData.map(row => {
       return [
         `"${row.name || 'Unknown'}"`,
@@ -263,16 +299,20 @@ export default function UserAccounts() {
           {showValidAccounts && (
             <div className="card border-0 shadow-sm mb-4 p-3" style={{ borderRadius: '12px' }}>
               <div className="d-flex gap-2">
-                <input
-                  type="email"
-                  className="form-control"
-                  placeholder="Enter email to authorize"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                />
-                
+                <div className="input-group">
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Username (e.g. jmmvenegas)"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                  />
+                  <span className="input-group-text bg-light text-muted">@antiquespride.edu.ph</span>
+                </div>
+
                 <select
                   className="form-control"
+                  style={{maxWidth: '200px'}}
                   value={newDepartment}
                   onChange={(e) => setNewDepartment(e.target.value)}
                 >
@@ -347,6 +387,9 @@ export default function UserAccounts() {
                           <td className="py-3">{row.department || "N/A"}</td>
                           <td><span className="badge bg-primary-subtle text-primary rounded-pill px-3">Campus User</span></td>
                           <td className="pe-4 text-end">
+                            <button className="btn btn-link text-primary p-0 me-3" onClick={() => handleEditClick(row)}>
+                              <i className="bi bi-pencil-square"></i>
+                            </button>
                             <button className="btn btn-link text-danger p-0" onClick={() => handleDeleteEmail(row.email)}>
                               <i className="bi bi-trash"></i>
                             </button>
@@ -374,7 +417,6 @@ export default function UserAccounts() {
                                 </div>
                               </div>
                             </td>
-                            {/* ✅ ADDED DEPARTMENT COLUMN HERE */}
                             <td>
                                 <span className="badge bg-info-subtle text-info px-3 rounded-pill" style={{fontSize: '0.75rem'}}>
                                     {row.department || "N/A"}
@@ -411,6 +453,56 @@ export default function UserAccounts() {
           </div>
         </div>
       </div>
+
+      {/* EDIT MODAL */}
+      {editingUser && (
+        <div className="modal d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title fw-bold">Edit Account</h5>
+                <button type="button" className="btn-close" onClick={() => setEditingUser(null)}></button>
+              </div>
+              <div className="modal-body">
+                <div className="mb-3">
+                  <label className="form-label small text-muted">Username</label>
+                  <div className="input-group">
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={editUsername}
+                      onChange={(e) => setEditUsername(e.target.value)}
+                    />
+                    <span className="input-group-text bg-light text-muted">@antiquespride.edu.ph</span>
+                  </div>
+                </div>
+                <div className="mb-3">
+                  <label className="form-label small text-muted">Department</label>
+                  <select
+                    className="form-control"
+                    value={editDepartment}
+                    onChange={(e) => setEditDepartment(e.target.value)}
+                  >
+                    <option value="">Select Department</option>
+                    <option value="CCIS">CCIS</option>
+                    <option value="CEA">CEA</option>
+                    <option value="CBA">CBA</option>
+                    <option value="CMS">CMS</option>
+                    <option value="CCJE">CCJE</option>
+                    <option value="CAS">CAS</option>
+                    <option value="CTE">CTE</option>
+                    <option value="CIT">CIT</option>
+                  </select>
+                </div>
+              </div>
+              <div className="modal-footer border-0">
+                <button type="button" className="btn btn-secondary" onClick={() => setEditingUser(null)}>Cancel</button>
+                <button type="button" className="btn btn-primary" onClick={handleUpdateAccount}>Save Changes</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

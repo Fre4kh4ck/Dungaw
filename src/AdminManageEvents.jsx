@@ -213,7 +213,7 @@ export default function AdminManageEvents() {
                                                 <th>Date</th>
                                                 <th>Time</th>
                                                 <th>Venue</th>
-                                                <th>Department</th>
+                                                <th>Colleges</th>
                                                 <th>Photo</th>
                                                 <th>Actions</th>
                                             </tr>

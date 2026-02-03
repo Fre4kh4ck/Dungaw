@@ -202,7 +202,7 @@ export default function Accounts() {
                     <thead className="bg-light">
                       <tr className="text-secondary text-uppercase small" style={{ letterSpacing: '0.5px' }}>
                         <th className="py-3 ps-3 border-bottom-0">#</th>
-                        <th className="py-3 border-bottom-0">Department</th>
+                        <th className="py-3 border-bottom-0">Colleges</th>
                         <th className="py-3 border-bottom-0">Credentials</th>
                         <th className="py-3 border-bottom-0">Role</th>
                         <th className="py-3 border-bottom-0 text-end pe-4">Action</th>

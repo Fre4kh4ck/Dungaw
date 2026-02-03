@@ -259,6 +259,7 @@ export default function Events() {
     return (
         <>
             <div className='container-fluid'>
+                {/* Navbar (Unchanged) */}
                 <nav className="navbar navbar-dark fixed-top d-flex justify-content-between px-3"
                     style={{ zIndex: 1050, height: '7rem', paddingTop: '1rem', paddingBottom: '1rem', backgroundColor: '#711212ff' }}>
                     <div className="d-flex align-items-center">
@@ -270,19 +271,11 @@ export default function Events() {
                     </div>
 
                     <div className="d-flex align-items-center gap-2">
-                        {user && (
-                            <button
-                                className="btn btn-outline-light me-2 fw-semibold"
-                                onClick={fetchMyJoinedEvents}
-                                style={{ borderRadius: '20px', fontSize: '0.9rem' }}
-                            >
-                                <i className="bi bi-qr-code me-1"></i> (Event Qr)
-                            </button>
-                        )}
                         <button className="btn btn-outline-light d-lg-none" onClick={toggleSidebar}>☰</button>
                     </div>
                 </nav>
 
+                {/* Sidebar (Unchanged) */}
                 <div className={`border-end text-light position-fixed top-0 start-0 h-100 sidebar d-flex flex-column ${sidebarOpen ? "show" : ""}`}
                     style={{
                         width: '250px',
@@ -351,6 +344,7 @@ export default function Events() {
                 </div>
             </div>
 
+            {/* Main Content Area */}
             <div style={{
                 marginLeft: isLargeScreen ? "250px" : "0",
                 transition: "margin-left 0.3s ease-in-out",
@@ -358,12 +352,52 @@ export default function Events() {
                 overflowX: "hidden"
             }}>
                 <div className="container-fluid p-0">
+                    {/* Hero Section Container */}
                     <div className="position-relative" style={{ marginTop: '6rem', width: '100%', minHeight: '60vh' }}>
+
+                        {/* Background Image */}
                         <div style={{ width: '100%', height: '100%', position: 'relative' }}>
                             <img src={BG1} alt="" style={{ width: "100%", minHeight: "60vh", objectFit: "cover", opacity: "0.8" }} />
                             <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", background: "linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.7))" }}></div>
                         </div>
 
+                        {/* ✅ UPDATED QR BUTTON: Professional Glass Style with Spacing */}
+                        {user && (
+                            <button
+                                className="btn d-flex align-items-center gap-2 shadow"
+                                onClick={fetchMyJoinedEvents}
+                                style={{
+                                    position: "absolute",
+                                    top: "40px",    // Increased margin top for the gap
+                                    right: "40px",  // Increased right margin
+                                    zIndex: 10,
+                                    backgroundColor: "rgba(255, 255, 255, 0.15)", // Subtle translucent background
+                                    backdropFilter: "blur(12px)",                 // Stronger blur for premium look
+                                    WebkitBackdropFilter: "blur(12px)",           // Safari support
+                                    border: "1px solid rgba(255, 255, 255, 0.5)", // Crisp white border
+                                    borderRadius: "50px",                         // Full pill shape
+                                    color: "#fff",
+                                    padding: "10px 24px",                         // Generous padding
+                                    fontSize: "0.9rem",
+                                    fontWeight: "500",
+                                    letterSpacing: "0.5px",
+                                    transition: "all 0.3s ease"
+                                }}
+                                onMouseOver={(e) => {
+                                    e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.3)";
+                                    e.currentTarget.style.transform = "translateY(-2px)";
+                                }}
+                                onMouseOut={(e) => {
+                                    e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.15)";
+                                    e.currentTarget.style.transform = "translateY(0)";
+                                }}
+                            >
+                                <i className="bi bi-qr-code-scan"></i>
+                                <span className="d-none d-sm-inline">My QRs</span>
+                            </button>
+                        )}
+
+                        {/* Center Text */}
                         <div style={{
                             position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
                             textAlign: "center", color: "#fff", width: "90%", maxWidth: "800px"
@@ -422,7 +456,7 @@ export default function Events() {
                 </div>
             </div>
 
-            {/* Modals */}
+            {/* Modals (No Changes below this point) */}
             {showModal && selectedEvent && (
                 <div className="modal fade show" style={{ display: "block", backgroundColor: "rgba(0, 0, 0, 0.5)", backdropFilter: "blur(5px)" }}>
                     <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
@@ -524,7 +558,7 @@ export default function Events() {
                 </div>
             )}
 
-            {/* ✅ NEW: USER JOINED EVENTS LIST MODAL */}
+            {/* USER JOINED EVENTS LIST MODAL */}
             {showQrListModal && (
                 <div className="modal fade show" style={{ display: "block", backgroundColor: "rgba(0, 0, 0, 0.5)", backdropFilter: "blur(3px)" }}>
                     <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable">
@@ -548,7 +582,6 @@ export default function Events() {
                                                     </div>
                                                     <div className="bg-white p-1 border rounded text-center position-relative" style={{ width: "70px", height: "70px" }}>
                                                         {item.qrCodeUrl || item.qrCodeDataURL ? (
-                                                            // ✅ CLICK TO ENLARGE
                                                             <img
                                                                 src={item.qrCodeUrl || item.qrCodeDataURL}
                                                                 alt="QR"
@@ -581,13 +614,12 @@ export default function Events() {
                 </div>
             )}
 
-            {/* ✅ NEW: ENLARGED QR MODAL */}
+            {/* ENLARGED QR MODAL */}
             {enlargedQrUrl && (
                 <div className="modal fade show" style={{ display: "block", backgroundColor: "rgba(0, 0, 0, 0.85)", zIndex: 1060 }}>
                     <div className="modal-dialog modal-dialog-centered">
                         <div className="modal-content bg-transparent border-0 shadow-none">
                             <div className="modal-body p-0 text-center position-relative">
-                                {/* Close Button */}
                                 <button
                                     type="button"
                                     className="btn btn-light rounded-circle shadow position-absolute top-0 end-0 translate-middle-y me-2 mt-n3"

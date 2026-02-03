@@ -51,7 +51,7 @@ export default function AdminHome() {
     }, []);
 
     // --- 3. PROACTIVE CONFLICT CHECKER ---
-    const venueList = ["UA Gym", "Pag-hiUsA Hall", "TiripUnAn Hall"];
+    const venueList = ["Pag-hiUsA Hall", "TiripUnAn Hall", "Busalian Hall", "UA Library", "UA Oval", "College Lobby"];
 
     const getConflict = (venueName) => {
         if (!selectedDate) return null;
@@ -332,6 +332,11 @@ export default function AdminHome() {
                                                 <option value="CCIS">CCIS</option>
                                                 <option value="CBA">CBA</option>
                                                 <option value="CTE">CTE</option>
+                                                <option value="CTE">CEA</option>
+                                                <option value="CTE">CAS</option>
+                                                <option value="CTE">CIT</option>
+                                                <option value="CTE">CMS</option>
+                                                <option value="CTE">CCJE</option>
                                             </select>
                                         </div>
 

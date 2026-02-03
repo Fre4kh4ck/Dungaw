@@ -6,12 +6,12 @@ export default function AddAccount() {
     // 1. Predefined list for the Department Dropdown
     const departments = [
         "College of Computer Studies (CCS)",
-        "College of Business Administration (CBA)",
+        "College of Business and Accountancy (CBA)",
         "College of Arts and Sciences (CAS)",
         "College of Criminal Justice Education (CCJE)",
         "College of Teacher Education (CTE)",
-        "College of Engineering (COE)",
-        "Maritime Studies",
+        "College of Engineering (CEA)",
+        "College of Maritime Studies (CMS)",
         "Registrar Office",
         "SAS Office",
         "Guidance Office",
@@ -46,6 +46,18 @@ export default function AddAccount() {
         e.preventDefault(); // Prevent default HTML form refresh
         setLoading(true);
         setError('');
+
+        // ---------------------------------------------------------
+        // ADDED: Strong Password Policy Check
+        // Regex: 8+ chars, 1 Uppercase, 1 Lowercase, 1 Number, 1 Symbol
+        const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+
+        if (!strongPasswordRegex.test(formData.password)) {
+            setError("Password must be at least 8 characters and contain an uppercase letter, a number, and a symbol.");
+            setLoading(false);
+            return; // Stop the function here
+        }
+        // ---------------------------------------------------------
 
         // Generate the date string
         const date = new Date();
@@ -103,8 +115,7 @@ export default function AddAccount() {
                                 >
                                     <option value="" disabled>Select Role...</option>
                                     <option value="Admin">Admin</option>
-                                    <option value="Staff">Staff</option>
-                                    <option value="Scanner">Scanner</option>
+                                    <option value="Staff">Co admin</option>
                                 </select>
                                 <label htmlFor="addRole">User Role</label>
                             </div>
@@ -119,12 +130,12 @@ export default function AddAccount() {
                                     onChange={handleChange}
                                     required
                                 >
-                                    <option value="" disabled>Select Department...</option>
+                                    <option value="" disabled>Select Colleges...</option>
                                     {departments.map((dept, index) => (
                                         <option key={index} value={dept}>{dept}</option>
                                     ))}
                                 </select>
-                                <label htmlFor="addName">Department</label>
+                                <label htmlFor="addName">Colleges</label>
                             </div>
 
                             {/* Username Input */}
