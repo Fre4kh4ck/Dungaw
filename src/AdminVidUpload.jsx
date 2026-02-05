@@ -61,14 +61,16 @@ export default function AdminUploadVideo() {
     const [isLoading, setIsLoading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0); 
     const [message, setMessage] = useState({ type: '', text: '' });
+    const [showTick, setShowTick] = useState(false); // STATE FOR TICK
 
-    // --- ✅ ADDED: State for fetching the list of videos ---
     const [videoList, setVideoList] = useState([]);
 
-    // --- ✅ ADDED: Fetch Videos Function ---
+    // --- ADDED FOR UPDATE ---
+    const [isEditing, setIsEditing] = useState(false);
+    const [currentVideoId, setCurrentVideoId] = useState(null);
+
     const fetchVideos = async () => {
         try {
-            // NOTE: Ensure your backend has a GET route at this address
             const response = await axios.get('http://localhost:4435/api/videos');
             setVideoList(response.data);
         } catch (error) {
@@ -76,10 +78,33 @@ export default function AdminUploadVideo() {
         }
     };
 
-    // --- ✅ ADDED: Load videos on page mount ---
     useEffect(() => {
         fetchVideos();
     }, []);
+
+    // --- ADDED: DELETE HANDLER ---
+    const handleDelete = async (id) => {
+        if (window.confirm("Are you sure you want to delete this video?")) {
+            try {
+                await axios.delete(`http://localhost:4435/api/videos/${id}`);
+                setMessage({ type: 'success', text: 'Video deleted successfully!' });
+                fetchVideos();
+            } catch (error) {
+                setMessage({ type: 'danger', text: 'Failed to delete video.' });
+            }
+        }
+    };
+
+    // --- ADDED: EDIT HANDLER ---
+    const handleEditClick = (video) => {
+        setIsEditing(true);
+        setCurrentVideoId(video.id);
+        setTitle(video.title);
+        setCollege(video.college);
+        setDescription(video.description);
+        setPreviewUrl(video.videoBase64);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
     const convertToBase64 = (file) => {
         return new Promise((resolve, reject) => {
@@ -107,8 +132,8 @@ export default function AdminUploadVideo() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!selectedFile || !college || !title) {
-            setMessage({ type: 'danger', text: 'Please fill in all required fields.' });
+        if (!isEditing && !selectedFile) {
+            setMessage({ type: 'danger', text: 'Please select a video file.' });
             return;
         }
 
@@ -116,9 +141,12 @@ export default function AdminUploadVideo() {
         setUploadProgress(10); 
 
         try {
-            setUploadProgress(30); 
-            const base64Video = await convertToBase64(selectedFile);
-            setUploadProgress(60); 
+            let base64Video = previewUrl; 
+            if (selectedFile) {
+                setUploadProgress(30); 
+                base64Video = await convertToBase64(selectedFile);
+                setUploadProgress(60); 
+            }
 
             const payload = {
                 title,
@@ -127,28 +155,26 @@ export default function AdminUploadVideo() {
                 videoBase64: base64Video 
             };
 
-            await axios.post('http://localhost:4435/api/upload-video', payload);
+            if (isEditing) {
+                await axios.put(`http://localhost:4435/api/videos/${currentVideoId}`, payload);
+                setMessage({ type: 'success', text: 'Video updated successfully!' });
+            } else {
+                await axios.post('http://localhost:4435/api/upload-video', payload);
+                setMessage({ type: 'success', text: 'Video successfully stored in database!' });
+            }
 
             setUploadProgress(100);
-            setMessage({ type: 'success', text: 'Video successfully stored in database!' });
-            
-            // Reset Form
-            setTitle('');
-            setCollege('');
-            setDescription('');
-            setSelectedFile(null);
-            setPreviewUrl(null);
-            document.getElementById('videoInput').value = "";
+            setShowTick(true); // SHOW TICK ON SUCCESS
 
-            // --- ✅ ADDED: Refresh the list immediately after upload ---
-            fetchVideos();
+            // AUTO RELOAD AFTER 2 SECONDS
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
 
         } catch (error) {
             console.error(error);
-            setMessage({ type: 'danger', text: 'Upload failed. Check console logs.' });
-        } finally {
+            setMessage({ type: 'danger', text: 'Operation failed. Check console logs.' });
             setIsLoading(false);
-            setUploadProgress(0);
         }
     };
 
@@ -156,11 +182,13 @@ export default function AdminUploadVideo() {
         <>
             <ReportStyles />
 
-            {isLoading && (
+            {/* TICK OVERLAY */}
+            {showTick && <Tick />}
+
+            {isLoading && !showTick && (
                 <div className="loading-overlay">
                     <div className="spinner-border text-danger" style={{width: '3rem', height: '3rem'}} role="status"></div>
-                    <h5 className="mt-3 text-danger fw-bold">Uploading to Database... {uploadProgress}%</h5>
-                    <small className="text-muted">Converting video...</small>
+                    <h5 className="mt-3 text-danger fw-bold">Processing... {uploadProgress}%</h5>
                 </div>
             )}
 
@@ -238,7 +266,9 @@ export default function AdminUploadVideo() {
                 {/* Main Content Area */}
                 <main className="main-content px-4 mb-5">
                     <div className="container-fluid">
-                        <h2 className="mb-4 text-dark fw-bold border-bottom pb-2">Upload Promotional Video</h2>
+                        <h2 className="mb-4 text-dark fw-bold border-bottom pb-2">
+                            {isEditing ? "Update Promotional Video" : "Upload Promotional Video"}
+                        </h2>
 
                         {message.text && (
                             <div className={`alert alert-${message.type} alert-dismissible fade show`} role="alert">
@@ -279,19 +309,17 @@ export default function AdminUploadVideo() {
                                                     style={{ cursor: 'pointer' }}
                                                     accept="video/*" 
                                                     onChange={handleFileChange}
-                                                    required
+                                                    required={!isEditing} 
                                                 />
-                                                {!selectedFile ? (
+                                                {!previewUrl ? (
                                                     <div className="text-center">
                                                         <i className="bi bi-cloud-arrow-up fs-1 text-secondary"></i>
                                                         <p className="mt-2 text-muted">Click or Drag Video Here</p>
                                                     </div>
                                                 ) : (
                                                     <div className="text-center w-100">
-                                                        <p className="text-success fw-bold mb-2">Selected: {selectedFile.name}</p>
-                                                        {previewUrl && (
-                                                            <video src={previewUrl} style={{maxHeight: '200px', borderRadius: '5px'}} controls />
-                                                        )}
+                                                        <p className="text-success fw-bold mb-2">{selectedFile ? `Selected: ${selectedFile.name}` : 'Current Video'}</p>
+                                                        <video src={previewUrl} style={{maxHeight: '200px', borderRadius: '5px'}} controls />
                                                     </div>
                                                 )}
                                             </div>
@@ -303,8 +331,18 @@ export default function AdminUploadVideo() {
                                         </div>
 
                                         <div className="col-12 text-end mt-4">
+                                            {isEditing && (
+                                                <button type="button" className="btn btn-secondary me-2 px-4" onClick={() => {
+                                                    setIsEditing(false);
+                                                    setTitle('');
+                                                    setCollege('');
+                                                    setDescription('');
+                                                    setPreviewUrl(null);
+                                                    setSelectedFile(null);
+                                                }}>Cancel</button>
+                                            )}
                                             <button type="submit" className="btn btn-lg text-white px-5" disabled={isLoading} style={{ backgroundColor: '#711212' }}>
-                                                {isLoading ? 'Processing...' : 'Upload'}
+                                                {isLoading ? 'Processing...' : (isEditing ? 'Update' : 'Upload')}
                                             </button>
                                         </div>
                                     </div>
@@ -312,7 +350,7 @@ export default function AdminUploadVideo() {
                             </div>
                         </div>
 
-                        {/* --- ✅ ADDED: VIDEO LIST SECTION --- */}
+                        {/* --- VIDEO LIST SECTION --- */}
                         <div className="mt-5">
                             <h3 className="mb-4 text-dark fw-bold border-bottom pb-2">
                                 <i className="bi bi-collection-play me-2"></i> Recently Uploaded Videos
@@ -328,7 +366,6 @@ export default function AdminUploadVideo() {
                                     {videoList.map((video, index) => (
                                         <div className="col-md-6 col-lg-4" key={index}>
                                             <div className="card video-card h-100">
-                                                {/* Video Player */}
                                                 <div className="ratio ratio-16x9">
                                                     <video 
                                                         src={video.videoBase64} 
@@ -342,12 +379,19 @@ export default function AdminUploadVideo() {
                                                 <div className="card-body">
                                                     <div className="d-flex justify-content-between align-items-start mb-2">
                                                         <span className="badge bg-danger">{video.college}</span>
-                                                        {/* Optional: Add Date here if your DB returns it */}
                                                     </div>
                                                     <h5 className="card-title fw-bold text-dark">{video.title}</h5>
                                                     <p className="card-text text-muted small">
                                                         {video.description || "No description provided."}
                                                     </p>
+                                                    <div className="d-flex gap-2 mt-3">
+                                                        <button className="btn btn-sm btn-outline-primary flex-grow-1" onClick={() => handleEditClick(video)}>
+                                                            <i className="bi bi-pencil"></i> Edit
+                                                        </button>
+                                                        <button className="btn btn-sm btn-outline-danger flex-grow-1" onClick={() => handleDelete(video.id)}>
+                                                            <i className="bi bi-trash"></i> Delete
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -355,8 +399,6 @@ export default function AdminUploadVideo() {
                                 </div>
                             )}
                         </div>
-                        {/* --- ✅ END OF VIDEO LIST SECTION --- */}
-
                     </div>
                 </main>
             </div>

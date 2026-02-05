@@ -18,6 +18,7 @@ import axios from 'axios';
 import CMSMP4 from './assets/CMS.mp4';
 import CCISMP4 from './assets/CCSMP4.mp4';
 import CBAMP4 from './assets/HMVID.mp4';
+import Tick from './Tick';
 
 // --- STYLES ---
 // --- STYLES (Updated with Calendar Fixes) ---

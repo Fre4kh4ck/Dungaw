@@ -184,6 +184,27 @@ server.get('/api/videos', async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to fetch videos" });
   }
 });
+
+// DELETE ROUTE
+server.delete('/api/videos/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.delete(promotional_videos).where(eq(promotional_videos.id, id));
+    res.json({ success: true, message: "Deleted" });
+  } catch (err) { res.status(500).send(err); }
+});
+
+// UPDATE ROUTE
+server.put('/api/videos/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, college, description, videoBase64 } = req.body;
+    await db.update(promotional_videos)
+      .set({ title, college, description, video_data: videoBase64 })
+      .where(eq(promotional_videos.id, id));
+    res.json({ success: true, message: "Updated" });
+  } catch (err) { res.status(500).send(err); }
+});
 // =============================================================
 // ✅ NEW ROUTE: Upload Video as Base64 Text
 // =============================================================
