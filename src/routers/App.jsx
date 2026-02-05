@@ -15,6 +15,8 @@ import AdminReoprts from '../AdminEventReports'
 import Scanner from '../Scanner';
 import EventApproval from '../EventApproval';
 import UserAccounts from '../UserAccounts';
+import AdminVidUpload from '../AdminVidUpload'
+import TRY from '../try';
 
 // ✅ IMPORT SECURITY FILES
 import RestrictGuest from '../RestrictGuest';
@@ -36,6 +38,7 @@ function App() {
           <Route path="/calendar" element={<Calendars />} />
           <Route path="/chats" element={<Chats />} />
           <Route path="/event-scanner" element={<Scanner />} />
+          <Route path="/try" element={<TRY />} />
         </Route>
 
 
@@ -92,6 +95,15 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['admin']}> {/* ❌ No 'co-admin' here */}
               <UserAccounts/>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/uploadVideo"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}> {/* ❌ No 'co-admin' here */}
+              <AdminVidUpload/>
             </ProtectedRoute>
           }
         />

@@ -59,7 +59,7 @@ export default function Accounts() {
       <AddAccount />
       <EditAccount />
       <DeleteAccount />
-      
+
       <div className='container-fluid'>
         {/* --- YOUR ORIGINAL TOP NAVBAR --- */}
         <nav
@@ -111,9 +111,18 @@ export default function Accounts() {
 
             <li className="nav-item mb-3">
               <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded hover-bg" href="/userAccounts"
-                
+
               >
                 <i className="bi bi-google"></i> User Accounts
+              </a>
+            </li>
+
+            <li className="nav-item mb-3">
+              <a
+                className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded"
+                href="/uploadVideo"
+              >
+                <i className="bi bi-upload"></i> Upload Video
               </a>
             </li>
 
@@ -161,11 +170,11 @@ export default function Accounts() {
         {/* --- MAIN CONTENT (Improved Interior Design) --- */}
         <div className='row justify-content-end' style={{ marginTop: '13rem' }}>
           <div className='col-12 col-sm-12 col-md-10 col-lg-10 p-4'>
-            
+
             {/* Card Wrapper for cleaner look */}
             <div className="card border-0 shadow-sm" style={{ borderRadius: '10px', backgroundColor: '#fff' }}>
               <div className="card-body p-4">
-                
+
                 <div className="d-flex justify-content-between align-items-center mb-4">
                   <h3 className="fw-bold text-secondary m-0">Manage Accounts</h3>
                 </div>

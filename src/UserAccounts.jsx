@@ -18,13 +18,13 @@ export default function UserAccounts() {
 
   const [showValidAccounts, setShowValidAccounts] = useState(false);
   const [validAccounts, setValidAccounts] = useState([]);
-  
+
   // Add State
   const [newEmail, setNewEmail] = useState("");
   const [newDepartment, setNewDepartment] = useState("");
 
   // Edit State
-  const [editingUser, setEditingUser] = useState(null); 
+  const [editingUser, setEditingUser] = useState(null);
   const [editUsername, setEditUsername] = useState("");
   const [editDepartment, setEditDepartment] = useState("");
 
@@ -70,9 +70,9 @@ export default function UserAccounts() {
     }
 
     try {
-      await axios.post(`${API_URL}/sib-campus-accounts`, { 
-        email: fullEmail, 
-        department: newDepartment 
+      await axios.post(`${API_URL}/sib-campus-accounts`, {
+        email: fullEmail,
+        department: newDepartment
       });
       setNewEmail("");
       setNewDepartment("");
@@ -86,7 +86,7 @@ export default function UserAccounts() {
   // --- EDIT FUNCTIONS (FIXED) ---
   const handleEditClick = (user) => {
     const username = user.email.split('@')[0];
-    setEditingUser(user); 
+    setEditingUser(user);
     setEditUsername(username);
     setEditDepartment(user.department);
   };
@@ -106,7 +106,7 @@ export default function UserAccounts() {
         email: fullEmail,
         department: editDepartment
       });
-      
+
       setEditingUser(null); // Close modal
       fetchValidAccounts(); // Refresh list
       alert("Account updated successfully!");
@@ -234,6 +234,15 @@ export default function UserAccounts() {
               </a>
             </li>
             <li className="nav-item mb-3">
+              <a
+                className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded"
+                href="/uploadVideo"
+              >
+                <i className="bi bi-upload"></i> Upload Video
+              </a>
+            </li>
+
+            <li className="nav-item mb-3">
               <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded" href="/manageEvents">
                 <i className="bi bi-collection"></i> Manage Events
               </a>
@@ -312,7 +321,7 @@ export default function UserAccounts() {
 
                 <select
                   className="form-control"
-                  style={{maxWidth: '200px'}}
+                  style={{ maxWidth: '200px' }}
                   value={newDepartment}
                   onChange={(e) => setNewDepartment(e.target.value)}
                 >
@@ -418,9 +427,9 @@ export default function UserAccounts() {
                               </div>
                             </td>
                             <td>
-                                <span className="badge bg-info-subtle text-info px-3 rounded-pill" style={{fontSize: '0.75rem'}}>
-                                    {row.department || "N/A"}
-                                </span>
+                              <span className="badge bg-info-subtle text-info px-3 rounded-pill" style={{ fontSize: '0.75rem' }}>
+                                {row.department || "N/A"}
+                              </span>
                             </td>
                             <td>
                               <div className="d-flex flex-column">

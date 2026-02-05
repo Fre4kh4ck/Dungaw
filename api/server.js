@@ -4,7 +4,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { db } from './db.js';
-import { accounts, events, chat_messages, joined_events, users, user_activity, sib_campus_accounts } from './drizzle-schema.js';
+import { accounts, events, chat_messages, joined_events, users, user_activity, sib_campus_accounts, promotional_videos } from './drizzle-schema.js';
 import { eq, and, gt, sql, count, desc, or } from 'drizzle-orm';
 import verifyToken from './middlewares/verifyToken.js';
 import multer from 'multer';
@@ -21,8 +21,9 @@ const server = express();
 const host = 'localhost';
 const port = 4435;
 
-server.use(express.json());
-server.use(express.urlencoded({ extended: false }));
+// ✅ MODIFIED: Increased limit to 50MB to allow large Base64 video strings
+server.use(express.json({ limit: '100mb' }));
+server.use(express.urlencoded({ limit: '100mb', extended: true }));
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -87,6 +88,60 @@ server.get('/user-events/:email', async (req, res) => {
     res.status(500).json({ error: "Failed to fetch joined events" });
   }
 });
+
+server.get('/api/latest-video', async (req, res) => {
+  try {
+    // Select all columns, sort by ID descending (newest first), limit to 1
+    const result = await db.select()
+      .from(promotional_videos)
+      .orderBy(desc(promotional_videos.id))
+      .limit(1);
+
+    if (result.length > 0) {
+      res.json({ success: true, data: result[0] });
+    } else {
+      res.json({ success: false, message: "No promotional video found." });
+    }
+
+  } catch (error) {
+    console.error("Error fetching video:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+// =============================================================
+// ✅ NEW ROUTE: Upload Video as Base64 Text
+// =============================================================
+server.post('/api/upload-video', async (req, res) => {
+  try {
+    // 1. Destructure the data sent from React
+    const { title, college, description, videoBase64 } = req.body;
+
+    // 2. Validation
+    if (!videoBase64) {
+      return res.status(400).json({ success: false, message: "No video data received." });
+    }
+
+    console.log(`Receiving video upload: ${title} (${college})`);
+
+    // 3. Insert into Database
+    // We store the huge string directly into the 'video_data' text column
+    await db.insert(promotional_videos).values({
+      title,
+      college,
+      description,
+      video_data: videoBase64,
+      mime_type: "video/mp4", // You can make this dynamic if needed
+    });
+
+    res.json({ success: true, message: "Video saved to database successfully!" });
+
+  } catch (error) {
+    console.error("Video Upload Error:", error);
+    res.status(500).json({ success: false, message: "Server error during video upload." });
+  }
+});
+
+
 // ✅ TOGGLE ARCHIVE STATUS
 server.put("/chats/archive", async (req, res) => {
   const { email, eventId, isArchived } = req.body;

@@ -85,10 +85,10 @@ export default function Scanner() {
 
                 // ✅ CONFLICT CHECK: Does Ticket Event ID match Selected Event ID?
                 if (String(qrData.eventId) !== String(selectedEventId)) {
-                    throw { 
-                        customError: true, 
-                        message: "❌ CONFLICT: This ticket belongs to a different event.", 
-                        status: "error" 
+                    throw {
+                        customError: true,
+                        message: "❌ CONFLICT: This ticket belongs to a different event.",
+                        status: "error"
                     };
                 }
 
@@ -102,7 +102,7 @@ export default function Scanner() {
 
                 const { message, email, status, time } = response.data;
                 let timeString = time ? ` at ${new Date(time).toLocaleTimeString()}` : "";
-                
+
                 setVerificationResult(`${message} (User: ${email})${timeString}`);
                 setVerificationStatus(status);
 
@@ -201,6 +201,15 @@ export default function Scanner() {
                                 <i className="bi bi-google"></i> User Accounts
                             </a>
                         </li>
+
+                        <li className="nav-item mb-3">
+                            <a
+                                className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded"
+                                href="/uploadVideo"
+                            >
+                                <i className="bi bi-upload"></i> Upload Video
+                            </a>
+                        </li>
                         <li className="nav-item mb-3">
                             <a className="nav-link d-flex align-items-center gap-2 text-light px-3 py-2 rounded" href="/manageEvents">
                                 <i className="bi bi-collection"></i> Manage Events
@@ -252,12 +261,12 @@ export default function Scanner() {
                                 {/* ✅ 1. EVENT SELECTION DROPDOWN */}
                                 <div className="mb-3 text-start">
                                     <label className="form-label fw-bold text-muted">Select Active Event:</label>
-                                    <select 
-                                        className="form-select border-danger" 
+                                    <select
+                                        className="form-select border-danger"
                                         value={selectedEventId}
                                         onChange={(e) => {
                                             setSelectedEventId(e.target.value);
-                                            setVerificationResult(""); 
+                                            setVerificationResult("");
                                             setVerificationStatus("");
                                         }}
                                     >
@@ -274,11 +283,11 @@ export default function Scanner() {
                                 <div className="mb-4 text-start p-3 rounded bg-light border">
                                     <label className="form-label fw-bold text-muted d-block">Scan Mode:</label>
                                     <div className="btn-group w-100" role="group">
-                                        <input 
-                                            type="radio" 
-                                            className="btn-check" 
-                                            name="scanMode" 
-                                            id="modeIn" 
+                                        <input
+                                            type="radio"
+                                            className="btn-check"
+                                            name="scanMode"
+                                            id="modeIn"
                                             autoComplete="off"
                                             checked={scanMode === "IN"}
                                             onChange={() => setScanMode("IN")}
@@ -287,11 +296,11 @@ export default function Scanner() {
                                             <i className="bi bi-box-arrow-in-right me-2"></i> TIME IN
                                         </label>
 
-                                        <input 
-                                            type="radio" 
-                                            className="btn-check" 
-                                            name="scanMode" 
-                                            id="modeOut" 
+                                        <input
+                                            type="radio"
+                                            className="btn-check"
+                                            name="scanMode"
+                                            id="modeOut"
                                             autoComplete="off"
                                             checked={scanMode === "OUT"}
                                             onChange={() => setScanMode("OUT")}

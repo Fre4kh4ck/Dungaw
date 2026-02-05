@@ -76,3 +76,16 @@ export const sib_campus_accounts = pgTable('sib_campus_accounts', {
   // ✅ ADD THIS LINE - It must match your database column name exactly
   department: varchar('department', { length: 255 }),
 });
+
+export const promotional_videos = pgTable('promotional_videos', {
+  id: serial('id').primaryKey(),
+  title: varchar('title', { length: 255 }).notNull(),
+  college: varchar('college', { length: 100 }).notNull(),
+  description: text('description'),
+  
+  // ✅ CHANGED: We use 'text' instead of 'bytea'
+  // We will store the video as a massive Base64 string here.
+  video_data: text('video_data').notNull(), 
+  
+  uploaded_at: timestamp('uploaded_at').defaultNow(),
+});
