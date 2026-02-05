@@ -401,28 +401,34 @@ export default function Home() {
     CMS: CMSMP4
   };
 
+  const [promoVideos, setPromoVideos] = useState([]);
   const [latestVideo, setLatestVideo] = useState(null);
+  const [videoList, setVideoList] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // --- FETCH VIDEO LOGIC ---
   useEffect(() => {
-    const fetchVideo = async () => {
+    const fetchVideos = async () => {
       try {
-        // ✅ Make sure the port matches your backend (4435)
-        const response = await axios.get('http://localhost:4435/api/latest-video');
+        // ✅ CHANGE: Fetch 'videos' (plural) to get the whole list
+        // Ensure you added the server.get('/api/videos'...) route from my previous answer
+        const response = await axios.get('http://localhost:4435/api/videos');
 
-        if (response.data.success) {
-          console.log("Video fetched:", response.data.data); // Check console to see if it works
-          setLatestVideo(response.data.data);
-        }
+        // Check if response is an array (depends on how you set up your backend return)
+        // If your backend returns just the array directly:
+        setVideoList(response.data);
+
+        // OR if your backend returns { success: true, data: [...] }:
+        // setVideoList(response.data.data); 
+
       } catch (error) {
-        console.error("Error fetching video:", error);
+        console.error("Error fetching videos:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchVideo();
+    fetchVideos();
   }, []);
 
   useEffect(() => {
@@ -586,15 +592,8 @@ export default function Home() {
         const res = await axios.get(`${import.meta.env.VITE_API_URL}/promotional_videos`);
 
         if (Array.isArray(res.data)) {
-          const newUrls = { ...videoUrls };
-          res.data.forEach(v => {
-            // Checks if database row has 'CCS', 'CBA', or 'CMS'
-            if (v.college && v.video_data) {
-              const key = v.college.trim().toUpperCase();
-              if (newUrls[key]) newUrls[key] = v.video_data;
-            }
-          });
-          setVideoUrls(newUrls);
+          // Just store the whole array from the database
+          setPromoVideos(res.data);
         }
       } catch (err) {
         console.error("Video fetch error:", err);
@@ -742,95 +741,64 @@ export default function Home() {
               </div>
 
               {/* DEPARTMENTS GRID */}
-              <div className="d-flex align-items-center justify-content-between mb-4">
-                <div>
-                  <h3 className="fw-bold mb-0" style={{ color: "#711212" }}>Discover Departments</h3>
-                  <div style={{ height: "4px", width: "40px", backgroundColor: "#711212", borderRadius: "2px", marginTop: "5px" }}></div>
+              <div className="container-fluid">
+
+                {/* Header */}
+                <div className="d-flex align-items-center justify-content-between mb-4">
+                  <div>
+                    <h3 className="fw-bold mb-0" style={{ color: "#711212" }}>Discover Departments</h3>
+                    <div style={{ height: "4px", width: "40px", backgroundColor: "#711212", borderRadius: "2px", marginTop: "5px" }}></div>
+                  </div>
                 </div>
-                {/* Optional: 'View All' link could go here */}
-              </div>
 
-              {/* 1. Loading State */}
-              {loading && (
-                <div className="text-center py-5">
-                  <div className="spinner-border text-danger mb-3" role="status"></div>
-                  <p className="text-muted small ls-1">Loading Content...</p>
-                </div>
-              )}
+                {/* Video Grid */}
+                {loading ? (
+                  <div className="text-center py-5">
+                    <div className="spinner-border text-danger" role="status"></div>
+                  </div>
+                ) : videoList.length === 0 ? (
+                  <div className="alert alert-light text-center border">
+                    No videos found.
+                  </div>
+                ) : (
+                  <div className="row g-4">
+                    {/* ✅ THE LOOP: This repeats for every video in videoList */}
+                    {videoList.map((video, index) => (
+                      <div key={index} className="col-md-6 col-lg-4">
+                        <div className="card h-100 shadow-sm border-0">
 
-              {/* 2. Grid System for Videos */}
-              {!loading && (
-                <div className="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
-
-                  {/* LOGIC: This creates an array. If you have a list called 'allVideos', replace the array below.
-         Currently, it takes your 'latestVideo' and wraps it in an array so it works with the map. 
-         Once you fetch multiple videos, just map that array instead.
-      */}
-                  {[latestVideo].filter(Boolean).map((video, index) => (
-                    <div className="col" key={index}>
-                      <div className="card h-100 shadow-sm border-0 video-card rounded-3 overflow-hidden">
-
-                        {/* Video / Thumbnail Section */}
-                        <div className="video-thumbnail-container ratio ratio-16x9">
-                          <video
-                            controls
-                            muted
-                            playsInline
-                            className="object-fit-cover"
-                            src={video.video_data}
-                            poster={video.thumbnail_url || ""}
-                          >
-                            Your browser does not support the video tag.
-                          </video>
-                        </div>
-
-                        {/* Card Body */}
-                        <div className="card-body p-3 d-flex flex-column">
-                          <div className="d-flex justify-content-between align-items-start mb-2">
-                            <span className="badge rounded-pill dept-badge text-uppercase px-2 py-1">
-                              {video.college || "UA Campus"}
-                            </span>
-                            <span className="video-date">
-                              <i className="bi bi-calendar-event me-1"></i>
-                              {new Date(video.uploaded_at || Date.now()).toLocaleDateString()}
-                            </span>
-                          </div>
-
-                          <h5 className="card-title fw-bold text-dark mb-2" style={{ fontSize: '1.1rem' }}>
-                            {video.title || "Department Highlight"}
-                          </h5>
-
-                          <p className="card-text video-desc mb-3">
-                            {video.description || "Watch the latest updates and highlights from this department."}
-                          </p>
-
-                          <div className="mt-auto pt-2 border-top">
-                            <button
-                              className="btn btn-sm w-100 fw-semibold"
-                              style={{ color: '#711212', backgroundColor: '#fdf1f1' }}
-                            // Add your modal open logic here if you want to pop it up instead
-                            // onClick={() => handlePlayVideo(video.video_data)} 
+                          {/* Video Player */}
+                          <div className="ratio ratio-16x9">
+                            <video
+                              src={video.videoBase64 || video.video_data}
+                              controls
+                              className="card-img-top rounded-top"
+                              preload="metadata"
                             >
-                              <i className="bi bi-play-circle-fill me-2"></i>Watch Video
-                            </button>
+                              Your browser does not support the video tag.
+                            </video>
                           </div>
+
+                          {/* Video Details */}
+                          <div className="card-body">
+                            <div className="mb-2">
+                              <span className="badge text-white" style={{ backgroundColor: "#711212" }}>
+                                {video.college || "General"}
+                              </span>
+                            </div>
+                            <h5 className="card-title fw-bold text-dark">{video.title}</h5>
+                            <p className="card-text text-muted small">
+                              {video.description}
+                            </p>
+                          </div>
+
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                )}
 
-                  {/* 3. Empty State (Only shows if array is empty) */}
-                  {!latestVideo && (
-                    <div className="col-12 text-center py-5">
-                      <div className="bg-light rounded-3 p-4 border border-dashed">
-                        <i className="bi bi-collection-play text-muted fs-1"></i>
-                        <p className="text-muted mt-2">No updates posted yet.</p>
-                      </div>
-                    </div>
-                  )}
-
-                </div>
-              )}
+              </div>
             </div>
 
             {/* Right Column (Calendar/Agenda) */}

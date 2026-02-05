@@ -153,6 +153,37 @@ server.get('/api/video/:id', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+// --- NEW: Get all Uploaded Videos ---
+server.get('/api/videos', async (req, res) => {
+  try {
+    // 1. Fetch from Database using Drizzle ORM
+    // We select all columns from the 'promotional_videos' table
+    // .orderBy is optional but recommended to show newest first. 
+    // If you don't have a specific sort, you can remove the .orderBy part.
+    const videos = await db.select().from(promotional_videos);
+
+    // 2. Format the data for Frontend
+    // The frontend expects the key 'videoBase64', but your DB column is 'video_data'.
+    // We map over the results to fix this key mismatch.
+    const formattedVideos = videos.map((video) => ({
+      id: video.id,
+      title: video.title,
+      college: video.college,
+      description: video.description,
+      videoBase64: video.video_data, // ✅ IMPORTANT: Mapping DB column to Frontend key
+    }));
+
+    // 3. Send response
+    // If using .orderBy(desc(promotional_videos.id)) you might need to reverse the array here 
+    // if you didn't sort in the query:
+    res.json(formattedVideos.reverse());
+
+  } catch (error) {
+    console.error("Error fetching videos:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch videos" });
+  }
+});
 // =============================================================
 // ✅ NEW ROUTE: Upload Video as Base64 Text
 // =============================================================
