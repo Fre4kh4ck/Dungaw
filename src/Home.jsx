@@ -23,6 +23,40 @@ import CBAMP4 from './assets/HMVID.mp4';
 // --- STYLES (Updated with Calendar Fixes) ---
 const HomeStyles = () => (
   <style>{`
+
+    .video-card {
+    transition: all 0.3s ease;
+    border: 1px solid rgba(0,0,0,0.05);
+    background: #fff;
+  }
+  .video-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(113, 18, 18, 0.15) !important;
+    border-color: rgba(113, 18, 18, 0.1);
+  }
+  .video-thumbnail-container {
+    position: relative;
+    overflow: hidden;
+    background-color: #000;
+  }
+  .dept-badge {
+    background-color: #711212; 
+    color: white;
+    font-size: 0.7rem;
+    letter-spacing: 0.5px;
+  }
+  .video-date {
+    font-size: 0.75rem;
+    color: #888;
+  }
+  .video-desc {
+    font-size: 0.85rem;
+    color: #555;
+    display: -webkit-box;
+    -webkit-line-clamp: 2; /* Limits text to 2 lines */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
     .page-container {
       margin-top: 7rem;
       margin-left: 0;
@@ -38,43 +72,44 @@ const HomeStyles = () => (
     .course-card {
       position: relative;
       border: none;
-      border-radius: 0.75rem;
+      border-radius: 1rem; 
       overflow: hidden;
-      height: 250px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-      transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+      height: 100px;  /* <--- THIS MAKES THE VIDEO SMALLER */
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      transition: transform 0.2s ease-out;
     }
+    
     .course-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      transform: translateY(-3px);
     }
+
     .video-background {
       position: absolute;
       top: 50%;
       left: 50%;
       width: 100%; 
       height: 100%;
-      object-fit: cover;
+      object-fit: cover; /* Ensures video doesn't stretch weirdly */
       transform: translate(-50%, -50%);
       z-index: 1;
-      pointer-events: none;
-      border: none;
     }
+
     .course-card-overlay {
       position: relative;
       z-index: 2;
       height: 100%;
-      background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.8) 100%);
+      background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.9) 100%);
       display: flex;
       flex-direction: column;
       justify-content: flex-end;
-      padding: 1.25rem;
+      padding: 1rem;
       color: white;
     }
+
     .course-card-logo {
-      width: 45px;
-      height: 45px;
-      margin-bottom: 0.5rem;
+      width: 35px;
+      height: 35px;
+      margin-bottom: 0.25rem;
     }
     
     /* --- ✅ CALENDAR FIXES START --- */
@@ -366,6 +401,30 @@ export default function Home() {
     CMS: CMSMP4
   };
 
+  const [latestVideo, setLatestVideo] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // --- FETCH VIDEO LOGIC ---
+  useEffect(() => {
+    const fetchVideo = async () => {
+      try {
+        // ✅ Make sure the port matches your backend (4435)
+        const response = await axios.get('http://localhost:4435/api/latest-video');
+
+        if (response.data.success) {
+          console.log("Video fetched:", response.data.data); // Check console to see if it works
+          setLatestVideo(response.data.data);
+        }
+      } catch (error) {
+        console.error("Error fetching video:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchVideo();
+  }, []);
+
   useEffect(() => {
     const handleResize = () => setIsLargeScreen(window.innerWidth >= 992);
     window.addEventListener("resize", handleResize);
@@ -513,6 +572,36 @@ export default function Home() {
     CCJE: "#d7ff24ff", CAS: "#18bb0cff", CEA: "#c9a420ff", CIT: "#fd7e14", CMS: "#9E9E9E"
   };
 
+  // 1. STATE: Default to local files, update with DB files
+  const [videoUrls, setVideoUrls] = useState({
+    CCS: CCISMP4,
+    CBA: CBAMP4,
+    CMS: CMSMP4
+  });
+
+  // 2. EFFECT: Fetch from database and replace defaults
+  useEffect(() => {
+    const fetchPromoVideos = async () => {
+      try {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/promotional_videos`);
+
+        if (Array.isArray(res.data)) {
+          const newUrls = { ...videoUrls };
+          res.data.forEach(v => {
+            // Checks if database row has 'CCS', 'CBA', or 'CMS'
+            if (v.college && v.video_data) {
+              const key = v.college.trim().toUpperCase();
+              if (newUrls[key]) newUrls[key] = v.video_data;
+            }
+          });
+          setVideoUrls(newUrls);
+        }
+      } catch (err) {
+        console.error("Video fetch error:", err);
+      }
+    };
+    fetchPromoVideos();
+  }, []);
   return (
     <>
       <HomeStyles />
@@ -653,61 +742,95 @@ export default function Home() {
               </div>
 
               {/* DEPARTMENTS GRID */}
-              <h2 className="fw-bold mb-3" style={{ color: "#711212" }}>Discover Departments</h2>
-              <div className="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
-
-                {/* CCIS Card */}
-                <div className="col">
-                  <div className="card course-card">
-                    <video className="video-background" src={CCISMP4} autoPlay loop muted playsInline />
-                    <div className="course-card-overlay">
-                      <img src={CCSLOGO} alt="CCIS" className="course-card-logo" />
-                      <h4 className="fw-bold">CCIS</h4>
-                      <div className="d-flex gap-2 mt-2">
-                        <button className="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#modalCCIS">View Details</button>
-                        <button className="btn btn-light btn-sm d-flex align-items-center gap-1" onClick={() => handlePlayVideo(VIDEO_SOURCES.CCS)}>
-                          <i className="bi bi-play-fill"></i> Play Video
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+              <div className="d-flex align-items-center justify-content-between mb-4">
+                <div>
+                  <h3 className="fw-bold mb-0" style={{ color: "#711212" }}>Discover Departments</h3>
+                  <div style={{ height: "4px", width: "40px", backgroundColor: "#711212", borderRadius: "2px", marginTop: "5px" }}></div>
                 </div>
-
-                {/* CBA Card */}
-                <div className="col">
-                  <div className="card course-card">
-                    <video className="video-background" src={CBAMP4} autoPlay loop muted playsInline />
-                    <div className="course-card-overlay">
-                      <img src={CBALOGO} alt="CBA" className="course-card-logo" />
-                      <h4 className="fw-bold">CBA</h4>
-                      <div className="d-flex gap-2 mt-2">
-                        <button className="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#modalCBA">View Details</button>
-                        <button className="btn btn-light btn-sm d-flex align-items-center gap-1" onClick={() => handlePlayVideo(VIDEO_SOURCES.HM)}>
-                          <i className="bi bi-play-fill"></i> Play Video
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* CMS Card */}
-                <div className="col">
-                  <div className="card course-card">
-                    <video className="video-background" src={CMSMP4} autoPlay loop muted playsInline />
-                    <div className="course-card-overlay">
-                      <img src={CMSLOGO} alt="CMS" className="course-card-logo" />
-                      <h4 className="fw-bold">CMS</h4>
-                      <div className="d-flex gap-2 mt-2">
-                        <button className="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#modalCMS">View Details</button>
-                        <button className="btn btn-light btn-sm d-flex align-items-center gap-1" onClick={() => handlePlayVideo(VIDEO_SOURCES.CMS)}>
-                          <i className="bi bi-play-fill"></i> Play Video
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
+                {/* Optional: 'View All' link could go here */}
               </div>
+
+              {/* 1. Loading State */}
+              {loading && (
+                <div className="text-center py-5">
+                  <div className="spinner-border text-danger mb-3" role="status"></div>
+                  <p className="text-muted small ls-1">Loading Content...</p>
+                </div>
+              )}
+
+              {/* 2. Grid System for Videos */}
+              {!loading && (
+                <div className="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+
+                  {/* LOGIC: This creates an array. If you have a list called 'allVideos', replace the array below.
+         Currently, it takes your 'latestVideo' and wraps it in an array so it works with the map. 
+         Once you fetch multiple videos, just map that array instead.
+      */}
+                  {[latestVideo].filter(Boolean).map((video, index) => (
+                    <div className="col" key={index}>
+                      <div className="card h-100 shadow-sm border-0 video-card rounded-3 overflow-hidden">
+
+                        {/* Video / Thumbnail Section */}
+                        <div className="video-thumbnail-container ratio ratio-16x9">
+                          <video
+                            controls
+                            muted
+                            playsInline
+                            className="object-fit-cover"
+                            src={video.video_data}
+                            poster={video.thumbnail_url || ""}
+                          >
+                            Your browser does not support the video tag.
+                          </video>
+                        </div>
+
+                        {/* Card Body */}
+                        <div className="card-body p-3 d-flex flex-column">
+                          <div className="d-flex justify-content-between align-items-start mb-2">
+                            <span className="badge rounded-pill dept-badge text-uppercase px-2 py-1">
+                              {video.college || "UA Campus"}
+                            </span>
+                            <span className="video-date">
+                              <i className="bi bi-calendar-event me-1"></i>
+                              {new Date(video.uploaded_at || Date.now()).toLocaleDateString()}
+                            </span>
+                          </div>
+
+                          <h5 className="card-title fw-bold text-dark mb-2" style={{ fontSize: '1.1rem' }}>
+                            {video.title || "Department Highlight"}
+                          </h5>
+
+                          <p className="card-text video-desc mb-3">
+                            {video.description || "Watch the latest updates and highlights from this department."}
+                          </p>
+
+                          <div className="mt-auto pt-2 border-top">
+                            <button
+                              className="btn btn-sm w-100 fw-semibold"
+                              style={{ color: '#711212', backgroundColor: '#fdf1f1' }}
+                            // Add your modal open logic here if you want to pop it up instead
+                            // onClick={() => handlePlayVideo(video.video_data)} 
+                            >
+                              <i className="bi bi-play-circle-fill me-2"></i>Watch Video
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* 3. Empty State (Only shows if array is empty) */}
+                  {!latestVideo && (
+                    <div className="col-12 text-center py-5">
+                      <div className="bg-light rounded-3 p-4 border border-dashed">
+                        <i className="bi bi-collection-play text-muted fs-1"></i>
+                        <p className="text-muted mt-2">No updates posted yet.</p>
+                      </div>
+                    </div>
+                  )}
+
+                </div>
+              )}
             </div>
 
             {/* Right Column (Calendar/Agenda) */}
@@ -783,10 +906,6 @@ export default function Home() {
         <small>Powered by Dungaw | A University Event Management System</small>
       </div>
 
-      {/* ============================================================ */}
-      {/* PROFESSIONAL DEPARTMENT MODALS (CCIS, CBA, CMS)              */}
-      {/* ============================================================ */}
-
       {/* 1. CCIS DETAILS MODAL */}
       <div className="modal fade" id="modalCCIS" tabIndex="-1" aria-hidden="true">
         <div className="modal-dialog modal-dialog-centered">
@@ -806,53 +925,6 @@ export default function Home() {
                 <li className="list-group-item custom-list-item"><i className="bi bi-cpu custom-list-icon"></i><span className="fw-semibold">BS in Computer Science</span></li>
                 <li className="list-group-item custom-list-item"><i className="bi bi-book custom-list-icon"></i><span className="fw-semibold">BL and Information Science</span></li>
               </ul>
-            </div>
-            <div className="modal-footer modal-footer-custom"><button type="button" className="btn btn-outline-secondary px-4 rounded-pill" data-bs-dismiss="modal">Close</button></div>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. CBA DETAILS MODAL */}
-      <div className="modal fade" id="modalCBA" tabIndex="-1" aria-hidden="true">
-        <div className="modal-dialog modal-dialog-centered">
-          <div className="modal-content modal-content-custom">
-            <div className="modal-header modal-header-custom" style={{ background: 'linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%)' }}>
-              <div className="d-flex align-items-center gap-3">
-                <img src={CBALOGO} alt="CBA" style={{ width: '45px', height: '45px', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }} />
-                <div><h5 className="modal-title fw-bold mb-0">College of Business Admin</h5><small className="text-white-50">Leadership & Management</small></div>
-              </div>
-              <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div className="modal-body modal-body-custom">
-              <p className="text-muted mb-4">The College of Business Administration prepares students for leadership roles in the corporate world, focusing on entrepreneurship and hospitality.</p>
-              <h6 className="fw-bold text-uppercase text-secondary small mb-3">Academic Programs</h6>
-              <ul className="list-group list-group-flush">
-                <li className="list-group-item custom-list-item"><i className="bi bi-briefcase custom-list-icon" style={{ color: '#0d6efd', backgroundColor: 'rgba(13, 110, 253, 0.1)' }}></i><span className="fw-semibold">BS in Business Administration</span></li>
-                <li className="list-group-item custom-list-item"><i className="bi bi-cup-hot custom-list-icon" style={{ color: '#0d6efd', backgroundColor: 'rgba(13, 110, 253, 0.1)' }}></i><span className="fw-semibold">BS in Hospitality Management</span></li>
-              </ul>
-            </div>
-            <div className="modal-footer modal-footer-custom"><button type="button" className="btn btn-outline-secondary px-4 rounded-pill" data-bs-dismiss="modal">Close</button></div>
-          </div>
-        </div>
-      </div>
-
-      {/* 3. CMS DETAILS MODAL */}
-      <div className="modal fade" id="modalCMS" tabIndex="-1" aria-hidden="true">
-        <div className="modal-dialog modal-dialog-centered">
-          <div className="modal-content modal-content-custom">
-            <div className="modal-header modal-header-custom" style={{ background: 'linear-gradient(135deg, #6c757d 0%, #495057 100%)' }}>
-              <div className="d-flex align-items-center gap-3">
-                <img src={CMSLOGO} alt="CMS" style={{ width: '45px', height: '45px', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }} />
-                <div><h5 className="modal-title fw-bold mb-0">College of Maritime Studies</h5><small className="text-white-50">Seamanship & Discipline</small></div>
-              </div>
-              <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div className="modal-body modal-body-custom">
-              <p className="text-muted mb-4">Dedicated to producing world-class seafarers and maritime professionals who are globally competitive and disciplined.</p>
-              <div className="p-3 rounded-3 border d-flex align-items-center" style={{ backgroundColor: '#f8f9fa' }}>
-                <i className="bi bi-anchor-fill me-3 fs-2 text-secondary"></i>
-                <div><div className="fw-bold">BS Marine Engineering</div><small>Upcoming Course</small></div>
-              </div>
             </div>
             <div className="modal-footer modal-footer-custom"><button type="button" className="btn btn-outline-secondary px-4 rounded-pill" data-bs-dismiss="modal">Close</button></div>
           </div>

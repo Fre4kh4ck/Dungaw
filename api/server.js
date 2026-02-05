@@ -89,22 +89,67 @@ server.get('/user-events/:email', async (req, res) => {
   }
 });
 
-server.get('/api/latest-video', async (req, res) => {
+// GET /api/video/college/:collegeName
+// Example usage: /api/video/college/CCIS
+server.get('/api/video/college/:name', async (req, res) => {
   try {
-    // Select all columns, sort by ID descending (newest first), limit to 1
+    const { name } = req.params;
+
+    // Fetch the latest video for this specific college
     const result = await db.select()
       .from(promotional_videos)
+      .where(eq(promotional_videos.college, name)) // Match the college name
       .orderBy(desc(promotional_videos.id))
       .limit(1);
 
     if (result.length > 0) {
       res.json({ success: true, data: result[0] });
     } else {
-      res.json({ success: false, message: "No promotional video found." });
+      res.status(404).json({ success: false, message: "No video found for this college." });
     }
 
   } catch (error) {
-    console.error("Error fetching video:", error);
+    console.error("Error fetching college video:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+server.get('/api/videos-list', async (req, res) => {
+  try {
+    // We strictly select ONLY the info needed for the card, avoiding 'video_data'
+    const result = await db.select({
+      id: promotional_videos.id,
+      title: promotional_videos.title,
+      college: promotional_videos.college,
+      description: promotional_videos.description,
+    })
+      .from(promotional_videos)
+      .orderBy(desc(promotional_videos.id));
+
+    res.json({ success: true, data: result });
+  } catch (error) {
+    console.error("List Fetch Error:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 2. GET SINGLE VIDEO (Heavy: The actual Base64 string)
+server.get('/api/video/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await db.select()
+      .from(promotional_videos)
+      .where(eq(promotional_videos.id, id))
+      .limit(1);
+
+    if (result.length > 0) {
+      res.json({ success: true, data: result[0] });
+    } else {
+      res.status(404).json({ success: false, message: "Video not found." });
+    }
+  } catch (error) {
+    console.error("Single Video Fetch Error:", error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
