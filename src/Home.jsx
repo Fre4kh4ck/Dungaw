@@ -405,6 +405,7 @@ export default function Home() {
   const [latestVideo, setLatestVideo] = useState(null);
   const [videoList, setVideoList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedVideo, setSelectedVideo] = useState(null);
 
   // --- FETCH VIDEO LOGIC ---
   useEffect(() => {
@@ -762,40 +763,110 @@ export default function Home() {
                   </div>
                 ) : (
                   <div className="row g-4">
-                    {/* ✅ THE LOOP: This repeats for every video in videoList */}
                     {videoList.map((video, index) => (
                       <div key={index} className="col-md-6 col-lg-4">
                         <div className="card h-100 shadow-sm border-0">
 
-                          {/* Video Player */}
+                          {/* Video Player (Preview) */}
                           <div className="ratio ratio-16x9">
                             <video
                               src={video.videoBase64 || video.video_data}
-                              controls
+                              autoPlay={true}
+                              muted={true}
+                              loop={true}
                               className="card-img-top rounded-top"
-                              preload="metadata"
-                            >
-                              Your browser does not support the video tag.
-                            </video>
+                              style={{ objectFit: "cover" }}
+                            />
                           </div>
 
-                          {/* Video Details */}
+                          {/* ✅ UPDATED CARD BODY */}
                           <div className="card-body">
+                            {/* Badge */}
                             <div className="mb-2">
                               <span className="badge text-white" style={{ backgroundColor: "#711212" }}>
                                 {video.college || "General"}
                               </span>
                             </div>
-                            <h5 className="card-title fw-bold text-dark">{video.title}</h5>
-                            <p className="card-text text-muted small">
-                              {video.description}
-                            </p>
+
+                            {/* Title and Button on the same row with space between */}
+                            <div className="d-flex justify-content-between align-items-center">
+                              <h5 className="card-title fw-bold text-dark text-truncate mb-0" style={{ maxWidth: "65%" }}>
+                                {video.title}
+                              </h5>
+
+                              <button
+                                className="btn btn-sm btn-outline-danger"
+                                style={{ borderColor: "#711212", color: "#711212", whiteSpace: "nowrap" }}
+                                onClick={() => setSelectedVideo(video)}
+                              >
+                                View Details
+                              </button>
+                            </div>
                           </div>
 
                         </div>
                       </div>
                     ))}
                   </div>
+                )}
+
+                {/* THE MODAL (Popup) - Remains the same */}
+                {selectedVideo && (
+                  <>
+                    <div
+                      className="modal-backdrop fade show"
+                      style={{ zIndex: 1040 }}
+                      onClick={() => setSelectedVideo(null)}
+                    ></div>
+
+                    <div className="modal fade show d-block" tabIndex="-1" style={{ zIndex: 1050 }}>
+                      <div className="modal-dialog modal-lg modal-dialog-centered">
+                        <div className="modal-content border-0 shadow-lg">
+
+                          <div className="modal-header text-white" style={{ backgroundColor: "#711212" }}>
+                            <h5 className="modal-title fw-bold">{selectedVideo.title}</h5>
+                            <button
+                              type="button"
+                              className="btn-close btn-close-white"
+                              onClick={() => setSelectedVideo(null)}
+                            ></button>
+                          </div>
+
+                          <div className="modal-body p-0">
+                            <div className="ratio ratio-16x9">
+                              <video
+                                src={selectedVideo.videoBase64 || selectedVideo.video_data}
+                                controls
+                                autoPlay
+                                className="w-100"
+                              />
+                            </div>
+
+                            <div className="p-4">
+                              <span className="badge mb-2 fs-6" style={{ backgroundColor: "#711212" }}>
+                                {selectedVideo.college}
+                              </span>
+                              <h4 className="fw-bold mb-3">{selectedVideo.title}</h4>
+                              <p className="text-secondary" style={{ whiteSpace: "pre-wrap" }}>
+                                {selectedVideo.description}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="modal-footer">
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              onClick={() => setSelectedVideo(null)}
+                            >
+                              Close
+                            </button>
+                          </div>
+
+                        </div>
+                      </div>
+                    </div>
+                  </>
                 )}
 
               </div>
